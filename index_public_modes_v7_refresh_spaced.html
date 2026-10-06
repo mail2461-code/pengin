@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>pengin Wiki 🐧</title><style>
+:root{--bg:#f6f6f4;--panel:#fff;--line:#deded9;--text:#222;--muted:#777;--accent:#333}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif}
+header{position:sticky;top:0;z-index:5;background:rgba(246,246,244,.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:14px}
+.bar{max-width:900px;margin:auto;display:flex;gap:8px;align-items:center}.brand{font-weight:700;font-size:18px;margin-right:auto}
+button,input,textarea{font:inherit}button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}button:hover{background:#f0f0ed}
+main{max-width:900px;margin:0 auto;padding:22px 14px 60px}.crumb{font-size:20px;color:var(--muted);margin-bottom:18px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}.crumb span{cursor:pointer;padding:12px 16px;border-radius:12px;background:#fff;border:1px solid var(--line);font-weight:700;min-height:46px;display:inline-flex;align-items:center;touch-action:none;user-select:none;-webkit-user-select:none}.crumb .drop-target{outline:3px dashed #777;outline-offset:2px;background:#f0f0ed}.crumb .crumb-target{transition:.12s}.crumb .crumb-target.drop-target{transform:scale(1.03)}.crumb span:hover{background:#f0f0ed}.crumb .sep{border:0;background:none;padding:0;color:var(--muted);font-weight:400}.title{font-size:30px;margin:4px 0 22px}
+.folder-icon{font-size:28px;line-height:1;display:flex;align-items:center;justify-content:center}.folder-svg{width:30px;height:26px;display:block}.page-icon{font-size:28px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}.item.dragging{opacity:.45}.item.drop-target{outline:3px dashed #777;outline-offset:3px}.drop-hint{font-size:13px;color:var(--muted);margin:-8px 0 14px}.drag-ghost{position:fixed;z-index:9999;pointer-events:none;padding:12px 16px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 30px #0002;font-weight:700;display:none}.item{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;min-height:105px;cursor:pointer;transition:.15s;touch-action:none;user-select:none;-webkit-user-select:none}.item.dragging{opacity:.45}.item.drop-target{outline:3px dashed #777;outline-offset:3px}.item:hover{transform:translateY(-1px);box-shadow:0 4px 15px #0000000d}.icon{font-size:24px;margin-bottom:10px}.name{font-weight:650}.type{font-size:12px;color:var(--muted);margin-top:5px}
+.article{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px;line-height:1.85}.article p{white-space:pre-wrap}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.search{width:190px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff}
+dialog{border:1px solid var(--line);border-radius:16px;width:min(620px,92vw);padding:0;box-shadow:0 20px 70px #0003}dialog::backdrop{background:#0005}.dlg{padding:20px}.dlg h2{margin-top:0}.field{margin:12px 0}.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}.field input,.field textarea,.field select{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px;background:#fff}.field textarea{min-height:180px;resize:vertical}.dlg-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.empty{color:var(--muted);padding:30px 5px}.hint{font-size:12px;color:var(--muted);margin-top:8px}
+@media(max-width:600px){.search{width:120px}.title{font-size:26px}.item{min-height:90px}}
+.mode-switch{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;flex-shrink:0}.mode-switch button{border:0;border-radius:0;padding:8px 10px;font-size:13px;background:#fff;color:var(--muted);white-space:nowrap}.mode-switch button.active{background:#333;color:#fff}.mode-switch button+button{border-left:1px solid var(--line)}.status{font-size:12px;color:var(--muted);white-space:nowrap}@media(max-width:600px){.status{display:none}}</style>
+<style>
+.item{grid-template-columns:72px 1fr auto;align-items:center;}
+.item .icon{
+  width:52px;height:52px;display:flex;align-items:center;justify-content:center;
+  margin:0 auto;border-radius:13px;font-size:0;position:relative;
+}
+.item .icon.folder{
+  background:#dff1df;
+  border:1px solid #c5dfc5;
+}
+.item .icon.folder:before{
+  content:"";width:34px;height:25px;background:#a9d8a9;
+  border-radius:4px 5px 5px 5px;position:absolute;left:9px;top:17px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55);
+}
+.item .icon.folder:after{
+  content:"";width:16px;height:7px;background:#a9d8a9;
+  border-radius:4px 4px 0 0;position:absolute;left:10px;top:12px;
+}
+.item .icon.file{
+  background:#f1f2f3;
+  border:1px solid #dedfe1;
+}
+.item .icon.file:before{
+  content:"";width:29px;height:36px;background:#d9dcdf;
+  border-radius:4px;position:absolute;left:11px;top:8px;
+  box-shadow:0 1px 2px rgba(0,0,0,.08);
+}
+.item .icon.file:after{
+  content:"";width:15px;height:3px;background:#b8bdc2;
+  border-radius:2px;position:absolute;left:18px;top:24px;
+  box-shadow:0 7px 0 #b8bdc2;
+}
+@media (max-width:600px){
+  .item{grid-template-columns:64px 1fr auto;}
+  .item .icon{width:48px;height:48px;}
+}
+</style>
+
+<style>
+.item-list{padding-left:26px!important;padding-right:26px!important;gap:18px!important}.item{margin-left:4px;margin-right:4px;border-radius:14px}.item .icon{width:52px;height:52px;border-radius:14px;position:relative;margin:0 auto;font-size:0;box-sizing:border-box}.item .icon.folder{background:#e7f6df;border:1px solid #c9e5b9;box-shadow:0 1px 2px rgba(0,0,0,.04)}.item .icon.folder:before{content:"";position:absolute;width:35px;height:25px;left:8px;top:18px;background:#a8d58f;border-radius:4px 5px 6px 6px;box-shadow:inset 0 1px 0 rgba(255,255,255,.45)}.item .icon.folder:after{content:"";position:absolute;width:17px;height:8px;left:9px;top:13px;background:#a8d58f;border-radius:5px 5px 0 0}.item .icon.file{background:#f3f4f5;border:1px solid #dedfe2;box-shadow:0 1px 2px rgba(0,0,0,.04)}.item .icon.file:before{content:"";position:absolute;width:29px;height:35px;left:11px;top:8px;background:#d5d8dc;border-radius:5px;box-shadow:inset 0 1px 0 rgba(255,255,255,.65)}.item .icon.file:after{content:"";position:absolute;width:15px;height:3px;left:18px;top:23px;background:#aeb3b8;border-radius:2px;box-shadow:0 7px 0 #aeb3b8}@media (max-width:600px){.item-list{padding-left:24px!important;padding-right:24px!important;gap:16px!important}.item{margin-left:5px;margin-right:5px}}</style>
+<style>
+/* v7 icon-only finish */
+.item{grid-template-columns:72px 1fr auto;align-items:center;}
+.item .icon{width:52px;height:52px;margin:0 auto 0;display:flex;align-items:center;justify-content:center;font-size:0;}
+.folder-icon,.page-icon{background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important;}
+.folder-svg{width:42px;height:34px;display:block;}
+.file-svg{width:34px;height:40px;display:block;}
+.item .type{display:none!important;}
+.item-list{padding-left:26px!important;padding-right:26px!important;}
+@media(max-width:600px){.item{grid-template-columns:62px 1fr auto;}.item-list{padding-left:24px!important;padding-right:24px!important;}}
+</style>
+</head>
+<body>
+<div id="dragGhost" class="drag-ghost"></div>
+<div id="wiki"><header><div class="bar"><div class="brand">pengin Wiki</div><div class="mode-switch" aria-label="ドラッグ操作モード"><button id="modeMove" class="active" onclick="setDragMode('move')">↪ 移動</button><button id="modeSort" onclick="setDragMode('sort')">↕ 並べ替え</button></div><span id="status" class="status">☁️</span><input id="search" class="search" placeholder="🔍 検索"><button onclick="goRoot()">⌂</button><button onclick="refreshWiki()" title="画面を更新">↻</button><button onclick="openNew()">＋</button></div></header><main id="app"></main></div>
+<dialog id="editor"><div class="dlg"><h2 id="dlgTitle">ページを追加</h2><div class="field"><label>名前</label><input id="fTitle"></div><div class="field"><label>種類</label><select id="fType"><option value="folder">フォルダ</option><option value="page">ページ</option></select></div><div class="field"><label>本文</label><textarea id="fBody" placeholder="このページの内容を書きます"></textarea></div><div class="dlg-actions"><button onclick="editor.close()">キャンセル</button><button onclick="saveItem()">保存</button></div></div></dialog>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://slofvjhrlbgiqvwyxqvo.supabase.co";
+const SUPABASE_KEY="sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh";
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const INITIAL=[{"id": "n0", "parent": "root", "title": "△", "type": "folder"}, {"id": "n1", "parent": "n0", "title": "組織", "type": "page", "body": "家族・部族・国家など、人間が作る組織と、その内側／外側の関係について考える。△という形で人間の階層構造を捉える。"}, {"id": "n2", "parent": "n0", "title": "競争", "type": "page", "body": "人が「1番」を目指す構造や、競い合う心について考える。競争そのものと、そこから生まれる位置争いを切り分ける。"}, {"id": "n3", "parent": "n0", "title": "GY▽XA", "type": "page", "body": "世界平和を目指すプロジェクト。すべての組織への関心から生まれ、「焦るな」を中心的なメッセージとする。△の命令としての競い合う心、盛り上げる方向の法則、平坦化とその先の崩壊などを扱う。"}, {"id": "n4", "parent": "n0", "title": "銀リテ", "type": "page", "body": "「銀リテラシー」。どこでも金・1番を目指さなくてもよい、という考え方。「多くの銀」「2番でもよい」という発想。ただし現在はポジション争い自体への関心が薄れている。"}, {"id": "n5", "parent": "n0", "title": "競い合う心", "type": "page", "body": "競争を生む心の動き。△の構造と結びついて考えているテーマ。"}, {"id": "n6", "parent": "n0", "title": "焦るな", "type": "page", "body": "GY▽XAの中心的なメッセージ。競争や変化の中で焦らないことを扱う。"}, {"id": "n7", "parent": "root", "title": "推論", "type": "folder"}, {"id": "n8", "parent": "n7", "title": "演繹", "type": "page", "body": "演繹・帰納・アブダクションの境界について考える。演繹も広い意味では推論の一種として捉える。"}, {"id": "n9", "parent": "n7", "title": "帰納", "type": "page", "body": "個別の事例から一般化する推論。アブダクションとの違いや共通点を検討した。"}, {"id": "n10", "parent": "n7", "title": "アブダクション", "type": "page", "body": "観察された事実から、それを説明しうる仮説を推論する考え方。科学的思考との関係を検討した。"}, {"id": "n11", "parent": "n7", "title": "言葉の曖昧さ", "type": "page", "body": "言葉は意味が固定されているようで、文脈によってフレームが変わる。言葉の定義そのものを問い直すテーマ。"}, {"id": "n12", "parent": "n7", "title": "アブダクション英語独習法", "type": "page", "body": "今井むつみ『アブダクション英語独習法』について検討した。英語学習における推論の扱いに関心がある。"}, {"id": "n13", "parent": "root", "title": "人格", "type": "folder"}, {"id": "n14", "parent": "n13", "title": "人格弱体化", "type": "page", "body": "人間を人格という単位で評価・序列化することへの疑問。行為の評価と人格そのものへの評価を分けて考える。"}, {"id": "n15", "parent": "n13", "title": "行為と人格", "type": "page", "body": "「人を尊重する」と「行為を尊重する」を区別する。法律や道徳の判断が人格評価へ飛躍することについて考える。"}, {"id": "n16", "parent": "n13", "title": "らしさが無い", "type": "page", "body": "自分には固定された本質や「らしさ」がない、という捉え方。分人主義とも関連する。"}, {"id": "n17", "parent": "n13", "title": "オートロジー", "type": "page", "body": "自己言及・自己記述に関わる考え方。自分自身について語ることの構造を考える。"}, {"id": "n18", "parent": "n13", "title": "オントロジー", "type": "page", "body": "存在についての捉え方。オートロジーとの対比から考える。"}, {"id": "n19", "parent": "root", "title": "自由", "type": "folder"}, {"id": "n20", "parent": "n19", "title": "自由という推論", "type": "page", "body": "自由そのものも、実体として存在するというより、人間が推論によって組み立てている可能性がある。教育の根本原則として自由を置くことへの疑問にもつながる。"}, {"id": "n21", "parent": "n19", "title": "自分ごとと世界ごと", "type": "page", "body": "「自分ごと」と「世界ごと」を混ぜることで、問題のフレームが変わってしまうことへの注意。"}, {"id": "n22", "parent": "n19", "title": "教育と推論", "type": "page", "body": "自由や学習を教育の前提にするのではなく、それ自体が推論の産物なのではないか、という問い。"}, {"id": "n23", "parent": "root", "title": "ドーパミン", "type": "folder"}, {"id": "n24", "parent": "n23", "title": "適切な排出量", "type": "page", "body": "最近の中心的な捉え方。オリンピックや人格とは切り離して、目的を「ドーパミンの適切な排出量を調整すること」として考える。"}, {"id": "n25", "parent": "n23", "title": "オリンピックと人格", "type": "page", "body": "オリンピックの順位や競技結果と、人間の人格そのものは別のものとして扱う。"}, {"id": "n26", "parent": "root", "title": "ラジオ", "type": "folder"}, {"id": "n27", "parent": "n26", "title": "ざんていラジオ", "type": "page", "body": "長期継続しているstand.fmのラジオ企画。大量の過去回を無料で公開し、必要に応じてお賽銭箱形式の支援を用いる。"}, {"id": "n28", "parent": "n26", "title": "901–999回", "type": "page", "body": "ざんていラジオの回数区切り。901–999回のまとめサムネイルを強く見せる案。"}, {"id": "n29", "parent": "n26", "title": "ざんていニュースNeo", "type": "page", "body": "ざんていラジオ関連のニュース企画。"}, {"id": "n30", "parent": "n26", "title": "ジムトーク！", "type": "page", "body": "ライブ企画。「政治はジムだ」「悪のハーモニー」「言論は自由ではない」などのコーナーを含む。"}, {"id": "n31", "parent": "n26", "title": "モバター", "type": "page", "body": "2月の火曜日企画。0円で提供する案。"}, {"id": "n32", "parent": "n26", "title": "ざんていラジオミュージック", "type": "page", "body": "音楽関連企画。「どっちが好き？」などのタイトル・ロゴを使用。"}, {"id": "n33", "parent": "n26", "title": "ながら収録・配信・視聴", "type": "page", "body": "家事などをしながら、収録・配信・視聴を同時に行うイメージ。"}, {"id": "n34", "parent": "n26", "title": "サムネイル", "type": "page", "body": "正方形、白っぽい背景、シンプル、やりすぎないデザインを基本とする。"}, {"id": "n35", "parent": "root", "title": "キャラクター・画像", "type": "folder"}, {"id": "n36", "parent": "n35", "title": "ぺん銀＆もっ金", "type": "page", "body": "繰り返し登場するキャラクター。ペンギンと黒猫を中心に、ラジオや思想テーマを視覚化する。"}, {"id": "n37", "parent": "n35", "title": "いつもの黒猫", "type": "page", "body": "無表情・驚き・理解した顔など、場面に応じた表情で登場する黒猫キャラクター。"}, {"id": "n38", "parent": "n35", "title": "オノマトペ", "type": "page", "body": "ギュー、ばーん、バラバラバラバラ、ばいーん、うおお、がちんがちーん、あちちちち、ぴゅーー、あわあわあわ、ぬるっ、じわっ、ドドドドド、テクテク、パクパクなどをキャラクターで表現。"}, {"id": "n39", "parent": "n35", "title": "パトス", "type": "page", "body": "液体の量を測る実験という設定。パトスという液体を光り輝くオレンジ色で表現。"}, {"id": "n40", "parent": "n35", "title": "ほとばしる熱いパトス", "type": "page", "body": "熱くほとばしるパトスをキャラクターで表現。"}, {"id": "n41", "parent": "n35", "title": "ω0（オメガゼロ）", "type": "page", "body": "ωの右下に小さな0を置き、ふりがな「オメガゼロ」。壮大だが派手すぎない背景と、さりげない泡。"}, {"id": "n42", "parent": "n35", "title": "ずっとびっくりしていたい", "type": "page", "body": "ずっと驚き続けた結果、真顔になってしまうような表情表現。"}, {"id": "n43", "parent": "n35", "title": "順番？", "type": "page", "body": "「順番？」という文字を縦書きで背景に配置するデザイン。"}, {"id": "n44", "parent": "n35", "title": "推論サムネ", "type": "page", "body": "既存キャラクター画像をそのまま使い、「推論」をテーマにしたサムネイル。"}, {"id": "n45", "parent": "n35", "title": "OOOサムネ", "type": "page", "body": "オブジェクト指向存在論。ObjectOrientedOntologyの注釈や、オブジェクトがオブジェクトを食べる図。ドーナツを便宜的に使用。"}, {"id": "n46", "parent": "n35", "title": "サッカーフェイント漫画", "type": "page", "body": "2コマ、言葉を使わずオノマトペだけでフェイントを表現。黒猫が「理解した ( ˘ω˘)」という顔で登場。"}, {"id": "n47", "parent": "n35", "title": "ペンギンの高速バレエ", "type": "page", "body": "ペンギンが男性版バレエ衣装で高速回転し、黒猫が呆れて見る。"}, {"id": "n48", "parent": "n35", "title": "格闘ゲーム", "type": "page", "body": "ペンギンと黒猫をゲームセンターの格闘ゲームに登場させる。"}, {"id": "n49", "parent": "n35", "title": "グリーンバック", "type": "page", "body": "猫・ペンギン・ソファだけを残し、背景をグリーンバックにする。"}, {"id": "n50", "parent": "n35", "title": "漁網から逃げる魚", "type": "page", "body": "魚がクモの巣ではなく、漁に使う網から逃げているドット絵。"}, {"id": "n51", "parent": "n35", "title": "500mLのお茶", "type": "page", "body": "500mLのお茶のペットボトル。カロリー表示などを正確にし、光の反射で文字が見えにくいリアルな表現。"}, {"id": "n52", "parent": "root", "title": "アニメ・SF", "type": "folder"}, {"id": "n53", "parent": "n52", "title": "機動戦士ガンダム", "type": "page", "body": "初代ガンダム終盤を「子どもでいられる場所」として読む視点。"}, {"id": "n54", "parent": "n52", "title": "クスィーとAE", "type": "page", "body": "クスィー、アナハイム・エレクトロニクス、サナリーなどの関係を考える。"}, {"id": "n55", "parent": "n52", "title": "MUSEとAI", "type": "page", "body": "MetaのMUSEやInstagramとの組み合わせがAI環境をどう変えるかという話題。"}, {"id": "n56", "parent": "n52", "title": "攻殻機動隊 SAC", "type": "page", "body": "SACのエピソードやタチコマ、草薙素子などを題材に考える。著作権を考慮してオリジナルキャラクターへの置換も行う。"}, {"id": "n57", "parent": "n52", "title": "マトリックスと攻殻機動隊", "type": "page", "body": "両作品の年代・世界観・影響関係を比較する。"}, {"id": "n58", "parent": "n52", "title": "The Mind Is Flat", "type": "page", "body": "心や自己について、深層に固定された本質を想定することへの疑問と関連して考える。"}, {"id": "n59", "parent": "n52", "title": "モナドと量子", "type": "page", "body": "ライプニッツのモナドと量子的な見方の類似・相違を考える。"}, {"id": "n60", "parent": "root", "title": "本・読書", "type": "folder"}, {"id": "n61", "parent": "n60", "title": "コーラスライン", "type": "page", "body": "『コーラスライン』のあらすじとキャシーの位置づけを検討。「目的と手段は曖昧」という感想につながった。"}, {"id": "n62", "parent": "n60", "title": "読んだことのなさそうな本", "type": "page", "body": "ユーザーがまだ読んでいなさそうな本を優先して推薦する。"}, {"id": "n63", "parent": "root", "title": "アプリ・技術", "type": "folder"}, {"id": "n64", "parent": "n63", "title": "超軽量メモアプリ", "type": "page", "body": "Swift + Swift PlaygroundsでiPad向けの非常に軽いローカルメモアプリを作る。日々の考えを整理する。"}, {"id": "n65", "parent": "n63", "title": "ドラッグ＆ドロップ分類", "type": "page", "body": "メモを指でドラッグしてフォルダへ分類する機能。"}, {"id": "n66", "parent": "n63", "title": "iPadのコピー＆ペースト", "type": "page", "body": "SwiftでiPadのコピー＆ペーストを実装する際の仕組みを検討。"}, {"id": "n67", "parent": "n63", "title": "HTML自分用Wiki", "type": "page", "body": "ChatGPTとの会話や自分の考えを、階層構造で整理する個人Wiki。HTML一枚で試作し、編集・追加・削除・検索を行う。"}, {"id": "n68", "parent": "root", "title": "旅行", "type": "folder"}, {"id": "n69", "parent": "n68", "title": "宮古島旅行 11月", "type": "page", "body": "11月の宮古島旅行を計画。新千歳→東京→宮古島→東京→新千歳の分割旅程を検討。"}, {"id": "n70", "parent": "n68", "title": "宮古島 3泊", "type": "page", "body": "宮古島3泊を中心に、前後に東京1泊を入れる旅程を検討。"}, {"id": "n71", "parent": "n68", "title": "宮古島・ユニビーチ周辺", "type": "page", "body": "ユニビーチ周辺でカヌーやライフジャケットのみのレンタルについて検討。"}, {"id": "n72", "parent": "n68", "title": "石垣島", "type": "page", "body": "石垣島の3泊旅行について、オフシーズンの時期を検討。"}, {"id": "n73", "parent": "n68", "title": "広島・宮古島 / 新千歳・宮古島", "type": "page", "body": "広島や新千歳から宮古島へ行く場合の航空券や時期を比較。"}, {"id": "n74", "parent": "root", "title": "言葉・表現", "type": "folder"}, {"id": "n75", "parent": "n74", "title": "普通", "type": "page", "body": "「普通」という言葉をキャラクターやタイトルの中で扱う。"}, {"id": "n76", "parent": "n74", "title": "嘘 → 格", "type": "page", "body": "「嘘」から「格」へ。人格・品格・格納庫など、「格」という言葉の広がりをテーマにする。"}, {"id": "n77", "parent": "n74", "title": "あわい", "type": "page", "body": "二つのものの間・境界のような曖昧な領域を表す言葉。"}, {"id": "n78", "parent": "n74", "title": "ウンカー / おまおっぱ / それはそう", "type": "page", "body": "LINEスタンプ等で使う短い言葉・リアクション表現。"}, {"id": "n79", "parent": "root", "title": "プロフィール", "type": "folder"}, {"id": "n80", "parent": "n79", "title": "スポーツと性格", "type": "page", "body": "小学生の野球・剣道、高校で剣道2段、大学で競技アルペンスキー。個人競技・スピード・北海道や海外へのアクセスなどがスキーを選んだ理由。"}, {"id": "n81", "parent": "n79", "title": "社労士", "type": "page", "body": "社会保険労務士としての仕事。労働契約、社会保険、ハラスメント、マイナンバーなどを扱う。"}, {"id": "n82", "parent": "n79", "title": "会話スタイル", "type": "page", "body": "日本語中心。具体例を好み、曖昧な説明は避けたい。講義型よりも問いを返すソクラテス的な会話を好む。"}];
+let data=[], current="root", editing=null, user=null;
+const $=id=>document.getElementById(id);
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+function children(parent){return data.filter(x=>x.parent===parent).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)||a.title.localeCompare(b.title,'ja'))}
+function find(id){return data.find(x=>x.id===id)}
+function path(id){let a=[],x=find(id);while(x){a.unshift(x);x=find(x.parent)}return a}
+function setStatus(msg){$('status').textContent=msg||''}
+async function boot(){
+  user=null;
+  const cached=localStorage.getItem('jibunWikiTreeV2');
+  if(cached){try{data=JSON.parse(cached)}catch(e){data=[]}}
+  if(!data.length)data=INITIAL.map((x,i)=>({...x,sort_order:i}));
+  render();
+  await loadCloud();
+  render();
+}
+async function loadCloud(){
+  setStatus('☁️ 読み込み中…');
+  try{
+    const {data:rows,error}=await sb.from('wiki_pages').select('*').order('sort_order',{ascending:true});
+    if(error){setStatus('☁️ 接続エラー');return}
+    if(!rows.length){await seedInitial();return}
+    data=rows.map(r=>({id:r.id,parent:r.parent_id||'root',title:r.title,type:r.kind,body:r.content||'',sort_order:r.sort_order||0}));
+    localStorage.setItem('jibunWikiTreeV2',JSON.stringify(data));setStatus('☁️ クラウド保存中');
+  }catch(e){setStatus('☁️ 接続エラー')}
+}
+async function seedInitial(){
+  setStatus('最初のWikiをクラウドへ移しています…');
+  const idMap={root:'root'};
+  data=INITIAL.map((x,i)=>({...x,sort_order:i}));
+  // Keep stable client IDs by mapping to UUIDs.
+  const rows=[];
+  for(const x of data){const newId=crypto.randomUUID();idMap[x.id]=newId;rows.push({id:newId,parent_id:x.parent==='root'?null:idMap[x.parent],title:x.title,content:x.body||'',kind:x.type,sort_order:x.sort_order,owner_id:null});}
+  const {error}=await sb.from('wiki_pages').insert(rows);
+  if(error){setStatus('初期データ移行エラー: '+error.message);return}
+  data=rows.map(r=>({id:r.id,parent:r.parent_id||'root',title:r.title,type:r.kind,body:r.content||'',sort_order:r.sort_order}));
+  localStorage.setItem('jibunWikiTreeV2',JSON.stringify(data));setStatus('☁️ クラウド保存完了');
+}
+function crumb(id){const ps=id==='root'?[]:path(id);return `<div class="crumb"><span class="crumb-target" data-id="root" data-drop-id="root" onclick="goRoot()" onpointerdown="pointerDown(event,'root')" onpointermove="pointerMove(event)" onpointerup="pointerUp(event)" onpointercancel="pointerCancel(event)">トップ</span>${ps.map(x=>`<span class="sep">›</span><span class="crumb-target" data-id="${x.id}" data-drop-id="${x.id}" onclick="openItem('${x.id}')" onpointerdown="pointerDown(event,'${x.id}')" onpointermove="pointerMove(event)" onpointerup="pointerUp(event)" onpointercancel="pointerCancel(event)">${esc(x.title)}</span>`).join('')}</div>`}
+function render(){if(current.startsWith('search:'))return renderSearch(current.slice(7));if(current==='root')return renderFolder('root','トップ');const n=find(current);if(!n){current='root';return render()}n.type==='folder'?renderFolder(n.id,n.title):renderPage(n)}
+function renderFolder(id,title){const items=children(id);const extra=id!=='root'?'<button onclick="editCurrent()">✏️ 編集</button><button onclick="deleteCurrent()">🗑️ 削除</button>':'';const body=items.length?'<div class="drop-hint">↪ 移動モード：フォルダまたは上のパスへドロップ　／　↕ 並べ替えモード：同じ階層で順番変更</div><div class="grid" ondragover="allowDrop(event)" ondrop="dropOnFolder(event,\''+id+'\')">'+items.map(itemCard).join('')+'</div>':'<div class="empty">まだ何もありません。＋から追加できます。</div>';$('app').innerHTML=crumb(id)+'<h1 class="title">'+esc(title)+'</h1><div class="actions"><button onclick="openNew(\''+id+'\',\'folder\')">＋ フォルダ</button><button onclick="openNew(\''+id+'\',\'page\')">＋ ページ</button>'+extra+'</div>'+body}
+function itemCard(n){return `<div class="item" data-id="${n.id}" onclick="handleTap(event,'${n.id}')" onpointerdown="pointerDown(event,'${n.id}')" onpointermove="pointerMove(event)" onpointerup="pointerUp(event)" onpointercancel="pointerCancel(event)"><div class="icon ${n.type==='folder'?'folder-icon':'page-icon'}">${n.type==='folder'?'<svg class="folder-svg" viewBox="0 0 64 52" aria-label="フォルダ"><path d="M4 10c0-3 2-5 5-5h17l6 7h23c3 0 5 2 5 5v26c0 4-3 7-7 7H11c-4 0-7-3-7-7V10z" fill="#b7df9d"/><path d="M4 16h56v27c0 4-3 7-7 7H11c-4 0-7-3-7-7V16z" fill="#9dcc7f"/><path d="M9 9h17l5 6H9z" fill="#cbeab6"/></svg>':'<svg class="file-svg" viewBox="0 0 48 56" aria-label="ファイル"><path d="M7 2h24l10 10v38c0 2-2 4-4 4H7c-2 0-4-2-4-4V6c0-2 2-4 4-4z" fill="#d5d8dc"/><path d="M31 2v10h10" fill="#eceeef"/><path d="M10 27h28M10 34h28M10 41h20" stroke="#a9adb2" stroke-width="3" stroke-linecap="round"/></svg>'}</div><div class="name">${esc(n.title)}</div></div>`}
+function renderPage(n){$('app').innerHTML=`${crumb(n.id)}<h1 class="title">${esc(n.title)}</h1><div class="article"><p>${esc(n.body||'')}</p></div><div class="actions"><button onclick="editCurrent()">✏️ 編集</button><button onclick="deleteCurrent()">🗑️ 削除</button></div>`}
+function renderSearch(q){const hits=data.filter(x=>(x.title+' '+(x.body||'')).toLowerCase().includes(q.toLowerCase()));const body=hits.length?'<div class="grid">'+hits.map(itemCard).join('')+'</div>':'<div class="empty">見つかりませんでした。</div>';$('app').innerHTML='<div class="crumb">検索</div><h1 class="title">「'+esc(q)+'」</h1>'+body}
+async function refreshWiki(){
+  const btn=[...document.querySelectorAll('header button')].find(b=>b.getAttribute('title')==='画面を更新');
+  if(btn)btn.disabled=true;
+  setStatus('☁️ 更新中…');
+  await loadCloud();
+  render();
+  if(btn)btn.disabled=false;
+} function openItem(id){current=id;render();window.scrollTo(0,0)} function goRoot(){current='root';render()}
+$('search').addEventListener('input',e=>{const q=e.target.value.trim();current=q?'search:'+q:'root';render()});
+function openNew(parent='root',type='page'){editing=null;$('dlgTitle').textContent=type==='folder'?'フォルダを追加':'ページを追加';$('fTitle').value='';$('fType').value=type;$('fBody').value='';$('editor').dataset.parent=parent;$('editor').showModal()}
+function editCurrent(){const n=find(current);if(!n)return;editing=n.id;$('dlgTitle').textContent='編集';$('fTitle').value=n.title;$('fType').value=n.type;$('fBody').value=n.body||'';$('editor').dataset.parent=n.parent;$('editor').showModal()}
+
+let dragMode='move';
+let draggedId=null,pointerDrag=null;window.justDropped=false;
+function setDragMode(mode){dragMode=mode;$('modeMove').classList.toggle('active',mode==='move');$('modeSort').classList.toggle('active',mode==='sort');updateDropHint();}
+function updateDropHint(){const h=document.querySelector('.drop-hint');if(h)h.textContent=dragMode==='move'?'↪ 移動モード：長押しして、フォルダまたは上のパスへドロップ':'↕ 並べ替えモード：長押しして、同じ階層の位置へドロップ';}
+
+function handleTap(e,id){if(pointerDrag&&pointerDrag.moved)return;if(window.justDropped)return;openItem(id)}
+function pointerDown(e,id){if(e.pointerType==='mouse'&&e.button!==0)return;pointerDrag={id,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,moved:false,el:e.currentTarget};try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}}
+function getDropTarget(x,y){
+  const el=document.elementFromPoint(x,y);
+  if(!el)return null;
+  const crumbTarget=el.closest('.crumb-target');
+  if(crumbTarget)return {el:crumbTarget,id:crumbTarget.dataset.dropId||crumbTarget.dataset.id,type:'crumb'};
+  const item=el.closest('.item[data-id]');
+  if(item)return {el:item,id:item.dataset.id,type:'item'};
+  return null;
+}
+function isValidDropTarget(t){
+  if(!t||!draggedId||t.id===draggedId)return false;
+  const source=find(draggedId);
+  if(!source)return false;
+  if(dragMode==='sort'){
+    const target=find(t.id);
+    return t.type==='item' && !!target && source.parent===target.parent;
+  }
+  if(t.type==='crumb'){
+    return t.id==='root' || (!!find(t.id) && find(t.id).type==='folder');
+  }
+  const target=find(t.id);
+  if(!target || target.type!=='folder')return false;
+  if(source.type==='folder' && isDescendant(target.id,source.id))return false;
+  return true;
+}
+function pointerMove(e){
+  if(!pointerDrag||e.pointerId!==pointerDrag.pointerId)return;
+  const dx=e.clientX-pointerDrag.startX,dy=e.clientY-pointerDrag.startY;
+  if(!pointerDrag.moved&&Math.hypot(dx,dy)<10)return;
+  if(!pointerDrag.moved){
+    pointerDrag.moved=true;draggedId=pointerDrag.id;pointerDrag.el.classList.add('dragging');
+    const n=find(draggedId),g=$('dragGhost');g.textContent=(n?.type==='folder'?'📁 ':'📄 ')+(n?.title||'');g.style.display='block';
+  }
+  const g=$('dragGhost');g.style.left=(e.clientX+12)+'px';g.style.top=(e.clientY+12)+'px';
+  document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'));
+  const t=getDropTarget(e.clientX,e.clientY);
+  if(isValidDropTarget(t))t.el.classList.add('drop-target');
+  e.preventDefault();
+}
+async function pointerUp(e){
+  if(!pointerDrag||e.pointerId!==pointerDrag.pointerId)return;
+  const s=pointerDrag;pointerDrag=null;$('dragGhost').style.display='none';s.el.classList.remove('dragging');
+  document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'));
+  if(!s.moved)return;
+  window.justDropped=true;
+  const t=getDropTarget(e.clientX,e.clientY);
+  if(isValidDropTarget(t)){
+    if(dragMode==='move') await dropToParent(s.id,t.id);
+    else await dropItemTouch(s.id,t.id);
+  }
+  setTimeout(()=>window.justDropped=false,120);
+}
+function pointerCancel(e){if(!pointerDrag||e.pointerId!==pointerDrag.pointerId)return;pointerDrag.el.classList.remove('dragging');pointerDrag=null;$('dragGhost').style.display='none';document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'))}
+async function dropItemTouch(sourceId,targetId){const source=find(sourceId),target=find(targetId);if(!source||!target||source.id===target.id)return;if(dragMode!=='sort')return;if(source.parent!==target.parent)return;const newParent=target.parent;const siblings=children(newParent).filter(x=>x.id!==source.id);let idx=siblings.findIndex(x=>x.id===target.id);if(idx<0)return;siblings.splice(idx,0,source);await persistOrder(source,newParent,siblings)}
+async function dropToParent(sourceId,parentId){const source=find(sourceId);if(!source||source.id===parentId)return;if(source.type==='folder'&&parentId!=='root'&&isDescendant(parentId,source.id))return;const siblings=children(parentId).filter(x=>x.id!==source.id);siblings.push(source);await persistOrder(source,parentId,siblings)}
+function isDescendant(id,ancestor){let x=find(id);while(x){if(x.parent===ancestor)return true;x=find(x.parent)}return false}
+async function persistOrder(source,newParent,siblings){const oldParent=source.parent;source.parent=newParent;const results=await Promise.all(siblings.map((x,i)=>{x.sort_order=i;return sb.from('wiki_pages').update({parent_id:newParent==='root'?null:newParent,sort_order:i}).eq('id',x.id)}));const bad=results.find(r=>r.error);if(bad){alert(bad.error.message);source.parent=oldParent;return}localStorage.setItem('jibunWikiTreeV2',JSON.stringify(data));setStatus('☁️ 保存しました');render()}
+function dragStart(e,id){draggedId=id;window.justDropped=false;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',id);e.currentTarget.classList.add('dragging')}
+function dragEnd(e){e.currentTarget.classList.remove('dragging');document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'));setTimeout(()=>window.justDropped=false,80)}
+function allowDrop(e){e.preventDefault();e.currentTarget.classList.add('drop-target')}
+async function dropItem(e,targetId){e.preventDefault();window.justDropped=true;const id=draggedId||e.dataTransfer.getData('text/plain');if(dragMode==='sort'){const source=find(id),target=find(targetId);if(source&&target&&source.parent===target.parent)await dropItemTouch(id,targetId)}else{const target=find(targetId);if(target?.type==='folder')await dropToParent(id,targetId)}document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'))}
+async function dropOnFolder(e,parentId){e.preventDefault();window.justDropped=true;if(dragMode==='move')await dropToParent(draggedId||e.dataTransfer.getData('text/plain'),parentId);document.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'))}
+
+async function saveItem(){const title=$('fTitle').value.trim();if(!title)return;const type=$('fType').value,body=$('fBody').value;
+  if(editing){const n=find(editing);const {error}=await sb.from('wiki_pages').update({title,kind:type,content:body}).eq('id',n.id);if(error){alert(error.message);return}Object.assign(n,{title,type,body});current=n.id}
+  else{const id=crypto.randomUUID();const parent=$('editor').dataset.parent||'root';const order=children(parent).length;const row={id,parent_id:parent==='root'?null:parent,title,kind:type,content:body,sort_order:order,owner_id:null};const {error}=await sb.from('wiki_pages').insert(row);if(error){alert(error.message);return}data.push({id,parent,title,type,body,sort_order:order});current=id}
+  localStorage.setItem('jibunWikiTreeV2',JSON.stringify(data));$('editor').close();setStatus('☁️ 保存しました');render();
+}
+async function deleteCurrent(){const n=find(current);if(!n)return;if(!confirm('「'+n.title+'」を削除しますか？（中のページも削除されます）'))return;const ids=new Set([n.id]);let changed=true;while(changed){changed=false;for(const x of data)if(ids.has(x.parent)&&!ids.has(x.id)){ids.add(x.id);changed=true}}const {error}=await sb.from('wiki_pages').delete().in('id',[...ids]);if(error){alert(error.message);return}data=data.filter(x=>!ids.has(x.id));localStorage.setItem('jibunWikiTreeV2',JSON.stringify(data));current=n.parent||'root';setStatus('☁️ 削除しました');render()}
+boot();
+setTimeout(updateDropHint,0);
+</script></body></html>
