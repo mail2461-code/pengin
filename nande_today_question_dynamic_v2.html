@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>なんで？ — pengin Wiki</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f7f7f5;color:#222;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif}
+header{border-bottom:1px solid #ddd;background:#fafaf8}
+.bar{max-width:1100px;margin:auto;padding:18px 24px;display:flex;align-items:center;gap:12px}
+.brand{font-weight:800;font-size:22px;margin-right:auto}
+.status{font-size:14px;color:#888}
+button{border:1px solid #ddd;background:white;border-radius:14px;padding:10px 16px;font-size:15px;cursor:pointer}
+button.primary{background:#222;color:white;border-color:#222}
+main{max-width:900px;margin:auto;padding:44px 24px 80px}
+.kicker{color:#999;font-size:15px;margin-bottom:24px}
+h1{font-size:clamp(38px,7vw,72px);line-height:1.08;margin:0 0 34px;letter-spacing:-.04em}
+.card{background:white;border:1px solid #ddd;border-radius:24px;padding:28px;margin-top:24px;box-shadow:0 2px 8px rgba(0,0,0,.03)}
+.card h2{font-size:21px;margin:0 0 14px}
+textarea{width:100%;min-height:150px;border:1px solid #ddd;border-radius:18px;padding:16px;font:inherit;font-size:17px;resize:vertical}
+.actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.source-title{font-weight:700;font-size:20px;margin-bottom:8px}
+.source-body{color:#666;line-height:1.7;white-space:pre-wrap}
+a{color:#555;text-decoration:none}
+.answers .answer{padding:16px 0;border-bottom:1px solid #eee;line-height:1.7}
+.answers .answer:last-child{border-bottom:0}
+.small{color:#999;font-size:13px}
+.error{color:#a33;background:#fff5f5;border:1px solid #e8caca;border-radius:16px;padding:16px;line-height:1.6}
+.hidden{display:none}
+@media(max-width:600px){
+  .bar{padding:16px}
+  main{padding:34px 18px 60px}
+  .card{padding:22px;border-radius:20px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">なんで？</div>
+    <div id="status" class="status">Wikiを読み込み中…</div>
+    <button onclick="loadWiki(true)" title="更新">↻</button>
+  </div>
+</header>
+
+<main>
+  <div class="kicker">pengin Wiki から今日の問い</div>
+
+  <section id="questionArea">
+    <div class="error hidden" id="error"></div>
+    <h1 id="question">読み込み中…</h1>
+  </section>
+
+  <section class="card">
+    <h2>自分の答えを書く</h2>
+    <textarea id="answer" placeholder="正解じゃなくて大丈夫。今の自分の考えをどうぞ。"></textarea>
+    <div class="actions">
+      <button class="primary" onclick="saveAnswer()">この答えを残す</button>
+      <button onclick="nextQuestion()">次の問い →</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>この問いの元になったWiki</h2>
+    <div id="source">
+      <div class="source-title">読み込み中…</div>
+    </div>
+  </section>
+
+  <section class="card answers">
+    <h2>これまでの自分の答え</h2>
+    <div id="answers"><div class="small">まだありません。</div></div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://slofvjhrlbgiqvwyxqvo.supabase.co";
+const SUPABASE_KEY="sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh";
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+let pages=[];
+let candidates=[];
+let current=null;
+
+const $=id=>document.getElementById(id);
+
+function esc(s){
+  return String(s??"").replace(/[&<>"']/g,m=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+  }[m]));
+}
+
+function makeQuestions(p){
+  const t=(p.title||"").trim();
+  const b=(p.content||"").trim();
+  const text=t+" "+b;
+  const q=[];
+
+  // Wikiのテーマから、同じページでも複数の問いを作る。
+  if(/自由/.test(text)){
+    q.push("「"+t+"」って、本当に自由なの？");
+    q.push("「"+t+"」を自由だと判断しているのは、誰なんだろう？");
+  }
+  if(/人格|らしさ|人間/.test(text)){
+    q.push("「"+t+"」は、行為と分けて考えられる？");
+    q.push("「"+t+"」をひとつのものとして扱う必要はある？");
+  }
+  if(/推論|演繹|帰納|アブダクション/.test(text)){
+    q.push("「"+t+"」って、結局なにをしている？");
+    q.push("「"+t+"」と他の推論は、本当に別物なの？");
+  }
+  if(/競争|競い|一番|1番|順位/.test(text)){
+    q.push("「"+t+"」は、なぜ起こるんだろう？");
+    q.push("「"+t+"」をやめたら、何が起こる？");
+  }
+  if(/言葉|意味|普通|嘘|格|あわい/.test(text)){
+    q.push("「"+t+"」という言葉の意味は、最初から決まっている？");
+    q.push("「"+t+"」は、別の意味にもなりうる？");
+  }
+  if(/教育|学習/.test(text)){
+    q.push("「"+t+"」は、本当に最初から教えるものなの？");
+    q.push("「"+t+"」について、子どもと大人で前提は同じ？");
+  }
+  if(/焦るな|焦り/.test(text)){
+    q.push("「"+t+"」と言われたら、何を焦らなくていい？");
+    q.push("「"+t+"」と競争は、本当に反対なの？");
+  }
+  if(/ドーパミン/.test(text)){
+    q.push("「"+t+"」を目的にすると、何が変わる？");
+    q.push("「"+t+"」は、多ければ多いほどいいの？");
+  }
+  if(/オリンピック|競技/.test(text)){
+    q.push("「"+t+"」と人格は、本当に関係がある？");
+    q.push("「"+t+"」の結果を、その人自身の評価にしていい？");
+  }
+
+  // 本文中に「〜とは」「〜について」があれば、定義そのものを問う。
+  if(/とは|という|について/.test(b)){
+    q.push("そもそも「"+t+"」って、何なんだろう？");
+  }
+
+  // 何も拾えないページにも問いを出す。
+  if(!q.length){
+    q.push("「"+t+"」について、あなたはどう考える？");
+    q.push("「"+t+"」を別の角度から見ると、どうなる？");
+    q.push("「"+t+"」は、本当に当たり前なんだろうか？");
+  }
+
+  return [...new Set(q)];
+}
+
+function makeQuestion(p){
+  const qs=makeQuestions(p);
+  return qs[Math.floor(Math.random()*qs.length)];
+}
+
+function renderCurrent(){
+  if(!current){
+    $("question").textContent="問いを作れるWikiページがありません。";
+    $("source").innerHTML="<div class='small'>Wikiにページを追加してみてください。</div>";
+    return;
+  }
+  $("question").textContent=makeQuestion(current);
+  $("source").innerHTML=
+    "<div class='source-title'>"+esc(current.title)+"</div>"+
+    (current.content ? "<div class='source-body'>"+esc(current.content.slice(0,500))+"</div>" : "")+
+    "<div class='actions'><a href='https://mail2461-code.github.io/pengin/' target='_blank'>Wikiで読む →</a></div>";
+}
+
+function nextQuestion(){
+  if(!candidates.length)return;
+  if(candidates.length===1){current=candidates[0];renderCurrent();return;}
+  let next;
+  do{next=candidates[Math.floor(Math.random()*candidates.length)]}
+  while(current && next.id===current.id);
+  current=next;
+  $("answer").value="";
+  renderCurrent();
+}
+
+function loadAnswers(){
+  const list=JSON.parse(localStorage.getItem("nandeAnswers")||"[]");
+  if(!list.length){
+    $("answers").innerHTML="<div class='small'>まだありません。</div>";
+    return;
+  }
+  $("answers").innerHTML=list.slice().reverse().map(x=>
+    "<div class='answer'><div>"+esc(x.answer).replace(/\n/g,"<br>")+
+    "</div><div class='small'>「"+esc(x.question)+"」 · "+esc(x.date)+"</div></div>"
+  ).join("");
+}
+
+function saveAnswer(){
+  const answer=$("answer").value.trim();
+  if(!answer)return;
+  const list=JSON.parse(localStorage.getItem("nandeAnswers")||"[]");
+  list.push({
+    question:current ? makeQuestion(current) : "",
+    answer,
+    date:new Date().toLocaleString("ja-JP")
+  });
+  localStorage.setItem("nandeAnswers",JSON.stringify(list));
+  $("answer").value="";
+  loadAnswers();
+}
+
+async function loadWiki(manual=false){
+  const status=$("status");
+  const error=$("error");
+  error.classList.add("hidden");
+  status.textContent=manual ? "更新中…" : "Wikiを読み込み中…";
+  try{
+    const result=await sb.from("wiki_pages")
+      .select("id,title,content,kind,parent_id,sort_order")
+      .eq("kind","page")
+      .order("sort_order",{ascending:true});
+
+    if(result.error) throw result.error;
+
+    pages=(result.data||[]).filter(p=>p.title && p.title.trim());
+    candidates=pages;
+
+    if(!candidates.length) throw new Error("Wikiにページがありません。");
+
+    nextQuestion();
+    status.textContent="Wikiから"+pages.length+"ページ・問い候補"+candidates.reduce((n,p)=>n+makeQuestions(p).length,0)+"件";
+  }catch(e){
+    console.error(e);
+    status.textContent="読み込みエラー";
+    $("question").textContent="Wikiを読み込めませんでした。";
+    $("source").innerHTML="";
+    error.innerHTML="<b>読み込みエラー</b><br>"+esc(e?.message||String(e))+
+      "<br><br>Supabaseへの接続またはブラウザ側の通信を確認してください。";
+    error.classList.remove("hidden");
+  }
+}
+
+loadAnswers();
+loadWiki();
+</script>
+</body>
+</html>
