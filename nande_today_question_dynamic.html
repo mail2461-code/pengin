@@ -1,0 +1,29 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>なんで？ — pengin Wiki</title><style>
+*{box-sizing:border-box}body{margin:0;background:#f7f7f5;color:#222;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif}header{position:sticky;top:0;background:#f7f7f5ee;backdrop-filter:blur(8px);border-bottom:1px solid #ddd;padding:14px 18px;z-index:2}.bar{max-width:760px;margin:auto;display:flex;align-items:center;justify-content:space-between}.brand{font-weight:700;font-size:18px}.refresh{border:1px solid #ddd;background:white;border-radius:12px;padding:8px 12px;font-size:18px}.wrap{max-width:760px;margin:auto;padding:34px 22px 60px}.eyebrow{font-size:13px;color:#888;margin-bottom:12px}.question{font-size:clamp(28px,6vw,48px);line-height:1.35;font-weight:700;margin:0 0 24px}.note{font-size:15px;color:#666;line-height:1.8}.card{background:white;border:1px solid #e2e2df;border-radius:20px;padding:20px;margin-top:26px}.card h2{font-size:17px;margin:0 0 12px}.answer{width:100%;min-height:130px;border:1px solid #ddd;border-radius:14px;padding:14px;font-size:16px;resize:vertical}.actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}button{border:1px solid #ddd;background:white;border-radius:12px;padding:10px 14px;font-size:15px;cursor:pointer}.primary{background:#222;color:#fff;border-color:#222}.link{color:#555;text-decoration:none}.status{font-size:12px;color:#888}.saved{font-size:14px;line-height:1.7}.saved article{padding:12px 0;border-top:1px solid #eee}.source{font-size:12px;color:#999;margin-top:8px}.empty{color:#999}.error{color:#a33}.hidden{display:none}</style></head><body>
+<header><div class="bar"><div class="brand">なんで？</div><div><span id="status" class="status">Wikiを読み込み中…</span> <button class="refresh" onclick="load()">↻</button></div></div></header>
+<main class="wrap"><div class="eyebrow">pengin Wiki から今日の問い</div><h1 id="question" class="question">読み込み中…</h1><p id="note" class="note"></p>
+<div class="card"><h2>自分の答えを書く</h2><textarea id="answer" class="answer" placeholder="正解じゃなくて大丈夫。今の自分の考えをどうぞ。"></textarea><div class="actions"><button class="primary" onclick="saveAnswer()">この答えを残す</button><button onclick="nextQuestion()">次の問い →</button></div></div>
+<div class="card"><h2>この問いの元になったWiki</h2><div id="source" class="source">—</div><div class="actions"><a class="link" href="https://mail2461-code.github.io/pengin/" target="_blank">Wikiで読む →</a></div></div>
+<div class="card"><h2>これまでの自分の答え</h2><div id="saved" class="saved"><span class="empty">まだありません。</span></div></div></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
+const SUPABASE_URL="https://slofvjhrlbgiqvwyxqvo.supabase.co";const SUPABASE_KEY="sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh";const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let pages=[],questions=[],current=null;
+const generic=[p=>`「${p.title}」って、本当に必要？`,p=>`「${p.title}」を、当たり前だと思っていない？`,p=>`なぜ「${p.title}」について考える必要がある？`,p=>`「${p.title}」と「その反対」は、本当に反対？`];
+function makeQuestions(rows){let out=[];for(const p of rows){if(!p.title||p.kind==='folder')continue;const body=(p.content||'').trim();let qs=[];const t=p.title;
+if(/自由/.test(t))qs=[`自由って、本当に自由？`,`「自由」を自由に決められる？`];
+else if(/人格/.test(t))qs=[`人格と行為は、本当に分けられる？`,`人を尊重するって、何を尊重する？`];
+else if(/推論|演繹|帰納|アブダクション/.test(t))qs=[`「${t}」は、何を推論している？`,`答えより先に、問いがある？`];
+else if(/競争/.test(t))qs=[`なぜ人は「一番」を目指す？`,`競争と順位は、本当に同じ？`];
+else if(/組織|△/.test(t))qs=[`人は、なぜ組織を作る？`,`組織の中と外では、何が変わる？`];
+else if(/GY▽XA|焦るな/.test(t))qs=[`「焦るな」は、競争を否定する言葉？`,`盛り上がることと、争うことは同じ？`];
+else qs=generic.map(f=>f(p));
+for(const q of qs)out.push({q,page:p.title,id:p.id,body});}return out}
+function choose(){if(!questions.length)return;const pool=questions.filter(x=>!current||questions.length===1||x.q!==current.q);current=pool[Math.floor(Math.random()*pool.length)];document.getElementById('question').textContent=current.q;document.getElementById('source').textContent=current.page;document.getElementById('note').textContent=current.body?current.body.slice(0,180)+(current.body.length>180?'…':''):'Wikiの内容から生まれた問いです。';document.getElementById('answer').value=''}
+function renderSaved(){const a=JSON.parse(localStorage.getItem('nande_answers')||'[]');const el=document.getElementById('saved');if(!a.length){el.innerHTML='<span class="empty">まだありません。</span>';return}el.innerHTML=a.slice().reverse().map(x=>`<article><b>${esc(x.q)}</b><div>${esc(x.a).replace(/
+/g,'<br>')}</div><div class="source">${esc(x.page)} ・ ${new Date(x.at).toLocaleString('ja-JP')}</div></article>`).join('')}
+function saveAnswer(){const a=document.getElementById('answer').value.trim();if(!a||!current)return;const all=JSON.parse(localStorage.getItem('nande_answers')||'[]');all.push({q:current.q,page:current.page,a,at:new Date().toISOString()});localStorage.setItem('nande_answers',JSON.stringify(all));document.getElementById('answer').value='';renderSaved()}
+function nextQuestion(){choose()}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+async function load(){const st=document.getElementById('status');st.textContent='Wikiを読み込み中…';try{const {data,error}=await sb.from('wiki_pages').select('id,parent_id,title,content,kind,sort_order').order('sort_order',{ascending:true});if(error)throw error;pages=data||[];questions=makeQuestions(pages);st.textContent=`Wikiから ${pages.filter(x=>x.kind!=='folder').length}ページを取得`;choose();renderSaved()}catch(e){st.textContent='読み込み失敗';document.getElementById('question').textContent='Wikiを読み込めませんでした';document.getElementById('note').innerHTML='<span class="error">Supabaseへの接続を確認してください。</span>';console.error(e)}}
+load();
+</script></body></html>
