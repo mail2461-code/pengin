@@ -221,6 +221,7 @@ setTimeout(updateDropHint,0);
 .walkway .path:after{content:"";position:absolute;left:50%;top:10px;bottom:10px;border-left:2px dashed #d8cdb0;transform:translateX(-1px)}
 .stroller{position:absolute;left:50%;width:30px;height:37px;margin-left:-19px;animation:stroll var(--stroll-dur,46s) ease-in-out infinite alternate}
 .stroller.two{margin-left:-11px;animation-direction:alternate-reverse;animation-delay:-9s}
+.stroller.solo{margin-left:-15px}
 .stroller .bob{animation:bob 1.1s ease-in-out infinite}
 @keyframes stroll{from{top:4px}to{top:calc(100% - 43px)}}
 @keyframes bob{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg) translateY(-1px)}}
@@ -245,15 +246,23 @@ function addWalkway(){
     var top0=items[0].offsetTop,cols=[];
     for(var j=0;j<items.length;j++){if(items[j].offsetTop===top0)cols.push(items[j]);}
     if(cols.length<2)return;
-    var mid=Math.floor((cols.length-2)/2);
-    var a=cols[mid],b=cols[mid+1];
-    var center=(a.offsetLeft+a.offsetWidth+b.offsetLeft)/2;
-    var w=document.createElement('div');
-    w.className='walkway';
-    w.style.left=center+'px';
-    w.style.setProperty('--stroll-dur',Math.max(26,Math.round(grid.offsetHeight/13))+'s');
-    w.innerHTML='<div class="path"></div><div class="stroller one"><div class="bob">'+PEKI+'</div></div><div class="stroller two"><div class="bob">'+PENGIN+'</div></div>';
-    grid.appendChild(w);
+    var dur=Math.max(26,Math.round(grid.offsetHeight/13))+'s';
+    var chars=[PENGIN,PEKI];
+    for(var g=0;g<cols.length-1;g++){
+      var a2=cols[g],b2=cols[g+1];
+      var w=document.createElement('div');
+      w.className='walkway';
+      w.style.left=((a2.offsetLeft+a2.offsetWidth+b2.offsetLeft)/2)+'px';
+      w.style.setProperty('--stroll-dur',dur);
+      var html='<div class="path"></div>';
+      if(cols.length-1===1){
+        html+='<div class="stroller one"><div class="bob">'+PEKI+'</div></div><div class="stroller two"><div class="bob">'+PENGIN+'</div></div>';
+      }else if(g<chars.length){
+        html+='<div class="stroller solo"'+(g>0?' style="animation-delay:-14s"':'')+'><div class="bob">'+chars[g]+'</div></div>';
+      }
+      w.innerHTML=html;
+      grid.appendChild(w);
+    }
   }finally{
     if(mo)mo.observe(app,{childList:true,subtree:true});
   }
