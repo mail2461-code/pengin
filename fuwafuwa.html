@@ -93,6 +93,23 @@
       conic-gradient(from 210deg at 50% 50%, rgba(255,170,215,.12), rgba(170,215,255,.10), rgba(215,255,190,.10), rgba(255,240,180,.08), rgba(255,170,215,.12)),
       radial-gradient(circle at 32% 26%, rgba(255,255,255,.95) 0%, rgba(238,226,252,.68) 38%, rgba(198,160,240,.50) 72%, rgba(170,125,228,.58) 100%); color: #472a66; }
   header button.on { background: linear-gradient(160deg, #f2f9e6, #cde5ae); border-color: rgba(198,228,165,.9); color: #33512a; }
+  #fishBar { display: none; padding: 0 14px 8px; align-items: center; gap: 10px; color: #f0f0e6; font-size: 13px; }
+  #fishBar.open { display: flex; }
+  #fishBar input[type="range"] { flex: 1; accent-color: #b9dc92; height: 30px; }
+  body.day { background: #93a884; }
+  body.day #stage { background:
+      radial-gradient(ellipse 65% 45% at 22% 12%, rgba(240,250,220,.55) 0%, rgba(240,250,220,0) 60%),
+      radial-gradient(ellipse 55% 40% at 85% 90%, rgba(110,150,95,.5) 0%, rgba(110,150,95,0) 65%),
+      linear-gradient(#a9bf97, #87a374); }
+  body.day #status { color: #37452f; }
+  body.night { background: #252b3d; }
+  body.night #stage { background:
+      radial-gradient(ellipse 50% 36% at 78% 10%, rgba(240,240,205,.22) 0%, rgba(240,240,205,0) 60%),
+      radial-gradient(rgba(255,255,255,.85) 1px, transparent 1.5px),
+      radial-gradient(rgba(255,255,255,.45) 1px, transparent 1.5px),
+      linear-gradient(#222839, #2e3a52 55%, #3a4666);
+    background-size: auto, 130px 130px, 210px 210px, auto;
+    background-position: 0 0, 0 0, 60px 80px, 0 0; }
   #editor .colorrow { display: flex; gap: 8px; flex-wrap: wrap; }
   #editor .cchip { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 2px solid rgba(255,255,255,.9);
     box-shadow: inset 0 0 8px rgba(255,255,255,.5), 0 3px 8px rgba(28,30,26,.25); padding: 0; }
@@ -176,10 +193,11 @@
     <span class="sp"></span>
     <button id="btnNew" type="button">＋ 新規</button>
     <button id="btnFish" type="button">魚眼</button>
-    <button id="btnShare" type="button">共有</button>
+    <button id="btnReload" type="button">更新</button>
     <button id="btnFit" type="button">全体</button>
     <button id="btnReset" type="button">並びをリセット</button>
   </header>
+  <div id="fishBar"><span>魚眼の強さ</span><input id="fishRange" type="range" min="0" max="100" value="50"></div>
   <div id="crumbs"></div>
   <div id="status">読み込み中…</div>
   <div id="stage">
@@ -268,7 +286,7 @@ async function load() {
   }
   statusEl.textContent = '全 ' + rows.length + ' ページ（並びは全端末で同期されます）';
   buildLevel('root');
-  fitView(false);
+  openView();
 }
 
 function buildLevel(pid) {
@@ -307,7 +325,7 @@ function buildLevel(pid) {
 
 // ===== 魚眼 =====
 let fisheyeOn = false;
-const FISH_K = 0.55;
+let fishK = 0.55;
 function fishParams() {
   const sw = stage.clientWidth, sh = stage.clientHeight;
   if (!sw || !sh) return null;
@@ -322,7 +340,7 @@ function warpPoint(x, y) {
   const dx = x - P.cx, dy = y - P.cy, d = Math.hypot(dx, dy);
   if (d >= P.Rw || d === 0) return { x, y, k: 1 };
   const t = 1 - (d / P.Rw) * (d / P.Rw);
-  return { x: P.cx + dx * (1 + FISH_K * 0.5 * t), y: P.cy + dy * (1 + FISH_K * 0.5 * t), k: 1 + FISH_K * t };
+  return { x: P.cx + dx * (1 + fishK * 0.5 * t), y: P.cy + dy * (1 + fishK * 0.5 * t), k: 1 + fishK * t };
 }
 function unwarpPoint(x, y) {
   if (!fisheyeOn) return { x, y };
@@ -332,7 +350,7 @@ function unwarpPoint(x, y) {
   let d = dp;
   for (let i = 0; i < 3; i++) {
     const t = Math.max(0, 1 - (d / P.Rw) * (d / P.Rw));
-    d = dp / (1 + FISH_K * 0.5 * t);
+    d = dp / (1 + fishK * 0.5 * t);
   }
   const s = d / dp;
   return { x: P.cx + dx * s, y: P.cy + dy * s };
@@ -351,16 +369,33 @@ function renderCrumbs() {
   let cur = currentParent;
   while (cur !== 'root') { path.unshift(cur); cur = (byId.get(cur) || {}).parent_id || 'root'; }
   const mk = (label, pid) => {
-    const b = document.createElement('button'); b.type = 'button'; b.textContent = label;
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = '🍞 ' + label;
     b.addEventListener('click', () => { buildLevel(pid); fitView(true); });
     crumbsEl.appendChild(b);
   };
-  mk('🏠 トップ', 'root');
+  mk('トップ', 'root');
   path.forEach(id => { const s = document.createElement('span'); s.textContent = '›'; crumbsEl.appendChild(s); mk(folderName(id), id); });
 }
 
 function renderDetail() {
   detailEl.innerHTML = '';
+  if (linkAsk) {
+    const a = nodes.find(x => x.id === linkAsk.a), b = nodes.find(x => x.id === linkAsk.b);
+    if (a && b) {
+      const k = document.createElement('span'); k.className = 'dk'; k.textContent = 'リンク';
+      const t = document.createElement('span'); t.className = 'dt';
+      t.textContent = '「' + a.title + '」と「' + b.title + '」をリンクする？';
+      detailEl.appendChild(k); detailEl.appendChild(t);
+      const y = document.createElement('button'); y.type = 'button'; y.textContent = 'はい';
+      y.addEventListener('click', () => { if (!isLinked(a.id, b.id)) toggleLink(a.id, b.id); linkAsk = null; renderDetail(); });
+      detailEl.appendChild(y);
+      const nn = document.createElement('button'); nn.type = 'button'; nn.textContent = 'やめる';
+      nn.addEventListener('click', () => { linkAsk = null; renderDetail(); });
+      detailEl.appendChild(nn);
+      return;
+    }
+    linkAsk = null;
+  }
   const n = nodes.find(x => x.id === selectedId);
   if (!n) {
     const s = document.createElement('span'); s.className = 'dt'; s.style.color = '#9a9687';
@@ -391,6 +426,26 @@ function renderDetail() {
 }
 
 function linkCount(id) { return settings.links.filter(l => l.a === id || l.b === id).length; }
+function isLinked(a, b) { return settings.links.some(l => (l.a === a && l.b === b) || (l.a === b && l.b === a)); }
+function pairPartner(n) {
+  for (const o of nodes) {
+    if (o === n) continue;
+    const d = Math.hypot(n.x - o.x, n.y - o.y);
+    if (Math.abs(d - (n.r + o.r)) <= 22) return o;
+  }
+  return null;
+}
+function pairPath(wa, wb, ra, rb) {
+  const Ra = ra + 8, Rb = rb + 8;
+  const dx = wb.x - wa.x, dy = wb.y - wa.y, D = Math.hypot(dx, dy) || 1;
+  const ux = dx / D, uy = dy / D;
+  const cosf = Math.max(-1, Math.min(1, (Ra - Rb) / D)), phi = Math.acos(cosf), sinf = Math.sin(phi);
+  const n1 = { x: ux * cosf - uy * sinf, y: uy * cosf + ux * sinf };
+  const n2 = { x: ux * cosf + uy * sinf, y: uy * cosf - ux * sinf };
+  const a1 = (wa.x + Ra * n1.x) + ' ' + (wa.y + Ra * n1.y), b1 = (wb.x + Rb * n1.x) + ' ' + (wb.y + Rb * n1.y);
+  const b2 = (wb.x + Rb * n2.x) + ' ' + (wb.y + Rb * n2.y), a2 = (wa.x + Ra * n2.x) + ' ' + (wa.y + Ra * n2.y);
+  return 'M ' + a1 + ' L ' + b1 + ' A ' + Rb + ' ' + Rb + ' 0 1 1 ' + b2 + ' L ' + a2 + ' A ' + Ra + ' ' + Ra + ' 0 1 1 ' + a1 + ' Z';
+}
 function toggleLink(a, b) {
   const i = settings.links.findIndex(l => (l.a === a && l.b === b) || (l.a === b && l.b === a));
   if (i >= 0) { settings.links.splice(i, 1); statusEl.textContent = 'リンクを切りました'; }
@@ -429,15 +484,8 @@ function renderSeams() {
     const ra = a.r * wa.k, rb = b.r * wb.k;
     const d = Math.hypot(wa.x - wb.x, wa.y - wb.y);
     if (Math.abs(d - (ra + rb)) <= 18 && d > 1) {
-      const R = Math.max(ra, rb) + 10;
-      const ux = (wb.x - wa.x) / d, uy = (wb.y - wa.y) / d, px = -uy * R, py = ux * R;
       const path = document.createElementNS(NS, 'path');
-      path.setAttribute('d',
-        'M ' + (wa.x + px) + ' ' + (wa.y + py) +
-        ' L ' + (wb.x + px) + ' ' + (wb.y + py) +
-        ' A ' + R + ' ' + R + ' 0 0 1 ' + (wb.x - px) + ' ' + (wb.y - py) +
-        ' L ' + (wa.x - px) + ' ' + (wa.y - py) +
-        ' A ' + R + ' ' + R + ' 0 0 1 ' + (wa.x + px) + ' ' + (wa.y + py) + ' Z');
+      path.setAttribute('d', pairPath(wa, wb, ra, rb));
       path.setAttribute('fill', 'rgba(169,196,141,0.34)');
       path.setAttribute('stroke', 'rgba(178,222,142,0.75)');
       path.setAttribute('stroke-width', '2.5');
@@ -459,6 +507,7 @@ function renderSeams() {
 const pointers = new Map();
 let dragNode = null, dragOff = { x: 0, y: 0 }, dragMoved = false, snapTarget = null;
 let linkMode = false;
+let linkAsk = null;
 let panStart = null, pinchStart = null, camAnim = null;
 
 function toWorld(cx, cy) {
@@ -482,6 +531,13 @@ function fitView(anim) {
   const s = Math.min(r.width / WORLD_W, r.height / WORLD_H) * 1.02;
   const to = { s, x: (r.width - WORLD_W * s) / 2, y: (r.height - WORLD_H * s) / 2 };
   if (anim) animateView(to, 380); else { view = to; applyView(); }
+}
+function openView() {
+  const r = stage.getBoundingClientRect();
+  const fitS = Math.min(r.width / WORLD_W, r.height / WORLD_H) * 1.02;
+  const s = Math.min(1.6, fitS * 2.1);
+  view = { s, x: r.width / 2 - (WORLD_W / 2) * s, y: r.height / 2 - (WORLD_H / 2) * s };
+  applyView();
 }
 function centerOn(n) {
   const r = stage.getBoundingClientRect();
@@ -587,7 +643,11 @@ function endPointer(ev) {
     const n = dragNode;
     n.el.classList.remove('dragging');
     nodes.forEach(o => o.el.classList.remove('snapcand'));
-    if (dragMoved) { savePos(); renderSeams(); }
+    if (dragMoved) {
+      savePos(); renderSeams();
+      const o = pairPartner(n);
+      if (o && !isLinked(n.id, o.id)) { linkAsk = { a: n.id, b: o.id }; renderDetail(); }
+    }
     else if (linkMode && selectedId && selectedId !== n.id) { toggleLink(selectedId, n.id); linkMode = false; renderDetail(); }
     else if (linkMode && selectedId === n.id) { linkMode = false; renderDetail(); }
     else { select(n.id); centerOn(n); }
@@ -633,13 +693,35 @@ document.getElementById('btnReset').addEventListener('click', () => {
 document.getElementById('btnFish').addEventListener('click', () => {
   fisheyeOn = !fisheyeOn;
   document.getElementById('btnFish').classList.toggle('on', fisheyeOn);
+  document.getElementById('fishBar').classList.toggle('open', fisheyeOn);
   layoutAll();
 });
-document.getElementById('btnShare').addEventListener('click', async () => {
-  const url = 'https://mail2461-code.github.io/pengin/fuwafuwa.html';
-  try { await navigator.clipboard.writeText(url); statusEl.textContent = 'リンクをコピーしました。パスコードは別口で伝えてね'; }
-  catch (e) { statusEl.textContent = 'URL: ' + url; }
+document.getElementById('fishRange').addEventListener('input', (e) => {
+  fishK = (e.target.value / 100) * 1.1;
+  if (fisheyeOn) layoutAll();
 });
+function applyTheme() {
+  const h = new Date().getHours();
+  const night = (h >= 17 || h < 5);
+  document.body.classList.toggle('night', night);
+  document.body.classList.toggle('day', !night);
+}
+applyTheme();
+setInterval(applyTheme, 60000);
+async function reloadData() {
+  statusEl.textContent = '更新中…';
+  const { data, error } = await sb.from('wiki_pages').select('*').order('sort_order', { ascending: true });
+  if (error) { statusEl.textContent = '更新に失敗しました：' + error.message; return; }
+  rows = data || [];
+  byId = new Map(rows.map(r => [r.id, r]));
+  const lr = rows.find(r => r.title === 'fuwa-layout' && r.kind === 'page');
+  if (lr) { layoutRowId = lr.id; try { settings = normalizeSettings(JSON.parse(lr.content || '{}')); } catch (e) {} }
+  if (currentParent !== 'root' && !byId.has(currentParent)) currentParent = 'root';
+  linkMode = false; linkAsk = null;
+  buildLevel(currentParent);
+  statusEl.textContent = '更新しました（全 ' + rows.length + ' ページ）';
+}
+document.getElementById('btnReload').addEventListener('click', reloadData);
 window.addEventListener('resize', () => fitView(false));
 
 // ===== パスキー =====
