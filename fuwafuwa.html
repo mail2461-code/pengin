@@ -8,10 +8,10 @@
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; padding: 0; height: 100%; }
-  body { font-family: "Meiryo", "メイリオ", "Hiragino Sans", "Noto Sans JP", sans-serif; background: #76766f; color: #33352f; overflow: hidden; }
+  body { font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; background: #76766f; color: #33352f; overflow: hidden; }
   #app { display: flex; flex-direction: column; height: 100dvh; }
   header { padding: 10px 14px 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-  header .ttl { font-family: "Meiryo", "メイリオ", "Hiragino Sans", "Noto Sans JP", sans-serif; font-size: 19px; letter-spacing: .04em; color: #f4f4ee; }
+  header .ttl { font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; font-size: 19px; letter-spacing: .04em; color: #f4f4ee; }
   header .badge { font-size: 11px; background: #e7e2d2; border-radius: 999px; padding: 2px 9px; color: #6d6a5c; }
   header .sp { flex: 1; }
   header button, #detail button, #sheet button {
@@ -127,7 +127,7 @@
   #linkSheet.open { display: block; }
   #linkSheet .box { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88dvh; overflow: auto; background: #f6f6f2;
     border-radius: 20px 20px 0 0; padding: 18px 20px calc(20px + env(safe-area-inset-bottom)); }
-  #linkSheet h2 { font-family: "Meiryo", "メイリオ", "Hiragino Sans", "Noto Sans JP", sans-serif; font-size: 19px; margin: 0 0 12px; }
+  #linkSheet h2 { font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; font-size: 19px; margin: 0 0 12px; }
   #linkSheet .close { float: right; font: inherit; font-size: 14px; font-weight: 600; min-height: 42px; padding: 8px 18px;
     border-radius: 999px; border: 1px solid rgba(255,255,255,.65); cursor: pointer;
     background: linear-gradient(160deg, rgba(255,255,255,.97), rgba(230,230,224,.94)); box-shadow: 0 4px 12px rgba(28,30,26,.22); }
@@ -179,7 +179,7 @@
   #sheet.open { display: block; }
   #sheet .box { position: absolute; left: 0; right: 0; bottom: 0; max-height: 78dvh; overflow: auto; background: #fffdf6;
     border-radius: 20px 20px 0 0; padding: 18px 20px calc(20px + env(safe-area-inset-bottom)); }
-  #sheet h2 { font-family: "Meiryo", "メイリオ", "Hiragino Sans", "Noto Sans JP", sans-serif; font-size: 19px; margin: 0 0 10px; }
+  #sheet h2 { font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; font-size: 19px; margin: 0 0 10px; }
   #sheet .body { white-space: pre-wrap; font-size: 14.5px; line-height: 1.75; color: #3c3e36; }
   #sheet .close { position: sticky; top: 0; float: right; }
   #lock { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
@@ -187,7 +187,7 @@
   #lock.hide { display: none; }
   #lock .lockbox { text-align: center; padding: 24px; width: min(320px, 86vw); }
   #lock .lockmark { font-size: 44px; }
-  #lock .locktitle { font-family: "Meiryo", "メイリオ", "Hiragino Sans", "Noto Sans JP", sans-serif; font-size: 26px; color: #f4f4ee; letter-spacing: .1em; margin-top: 2px; }
+  #lock .locktitle { font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; font-size: 26px; color: #f4f4ee; letter-spacing: .1em; margin-top: 2px; }
   #lock .lockmsg { color: #e8e8de; font-size: 13.5px; min-height: 20px; margin: 10px 0 12px; }
   #lock input { width: 190px; text-align: center; font-size: 26px; letter-spacing: .45em; padding: 12px 6px 12px 18px;
     border-radius: 16px; border: 1px solid rgba(255,255,255,.5); background: rgba(255,255,255,.94); color: #33352f; }
@@ -200,7 +200,7 @@
   #editor.open { display: block; }
   #editor .box { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88dvh; overflow: auto; background: #f6f6f2;
     border-radius: 20px 20px 0 0; padding: 18px 20px calc(20px + env(safe-area-inset-bottom)); }
-  #editor h2 { font-family: "Meiryo", "メイリオ", "Hiragino Sans", "Noto Sans JP", sans-serif; font-size: 19px; margin: 0 0 12px; }
+  #editor h2 { font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; font-size: 19px; margin: 0 0 12px; }
   #editor .close { float: right; font: inherit; font-size: 14px; font-weight: 600; min-height: 42px; padding: 8px 18px;
     border-radius: 999px; border: 1px solid rgba(255,255,255,.65); cursor: pointer;
     background: linear-gradient(160deg, rgba(255,255,255,.97), rgba(230,230,224,.94)); box-shadow: 0 4px 12px rgba(28,30,26,.22); }
@@ -449,20 +449,14 @@ function renderGuides() {
     p.setAttribute('class', cls);
     g.appendChild(p);
   };
-  if ((typeof guideMode === 'undefined' || guideMode === 6)) {
-    sectorPath(400, 720, 'pond');
-    sectorPath(490, 640, 'pondring');
-  } else {
-    ellipsePath(850, 1185, 150, 60, 'pond');
-    ellipsePath(850, 1185, 95, 38, 'pondring');
-  }
+  sectorPath(576, 720, 'pond');
   const mkPath = (pts, cls) => {
     const p = document.createElementNS(NS, 'path');
     p.setAttribute('d', 'M ' + pts.map(q => q.x.toFixed(1) + ' ' + q.y.toFixed(1)).join(' L '));
     p.setAttribute('class', cls);
     g.appendChild(p);
   };
-  for (const r of [180, 360, 540, 720]) {
+  for (const r of [144, 288, 432, 576, 720]) {
     const pts = [];
     for (let i = 0; i <= 72; i++) {
       const a = i / 72 * Math.PI * 2;
@@ -1183,7 +1177,7 @@ sIn.addEventListener('input', () => {
 // ===== お散歩ペンギン（ワールド座標：魚眼で一緒に歪む） =====
 const penguinEl = document.getElementById('penguin');
 const penguinFlip = document.getElementById('penguinFlip');
-const POND = { x: 850, y: 1185 };
+const POND = { x: 850, y: 1215 };
 let pg = null, pgLast = 0;
 function placePenguin() {
   if (!pg) return;
