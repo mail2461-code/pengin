@@ -45,8 +45,9 @@
   #world { position: absolute; left: 0; top: 0; width: 1700px; height: 1250px; transform-origin: 0 0; }
   #seams { position: absolute; left: 0; top: 0; width: 1700px; height: 1250px; pointer-events: none; }
   #guides { position: absolute; left: 0; top: 0; width: 1700px; height: 1250px; pointer-events: none; }
-  #guides circle { fill: none; stroke: rgba(255,255,255,.30); stroke-width: 2; stroke-dasharray: 3 11; stroke-linecap: round; }
-  #guides circle.gdot { fill: rgba(255,255,255,.35); stroke: none; }
+  #guides circle { fill: none; stroke: rgba(255,255,255,.58); stroke-width: 2.5; stroke-dasharray: 3 11; stroke-linecap: round; }
+  #guides circle.gdot { fill: rgba(255,255,255,.65); stroke: none; }
+  #guides line { stroke: rgba(255,255,255,.5); stroke-width: 2; stroke-dasharray: 14 10; }
   .node { position: absolute; transform: translate(-50%, -50%); cursor: grab; touch-action: none; z-index: 2; }
   .node.dragging { cursor: grabbing; z-index: 5; }
   .node .card {
@@ -216,6 +217,7 @@
     <span class="sp"></span>
     <button id="btnNew" type="button">＋ 新規</button>
     <button id="btnFish" type="button">魚眼</button>
+    <button id="btnGuide" type="button">□↔⬡</button>
     <button id="btnReload" type="button">更新</button>
     <button id="btnFit" type="button">全体</button>
     <button id="btnReset" type="button">並びをリセット</button>
@@ -228,6 +230,12 @@
       <svg id="guides">
         <circle cx="850" cy="625" r="180"/><circle cx="850" cy="625" r="360"/>
         <circle cx="850" cy="625" r="540"/><circle cx="850" cy="625" r="720"/>
+        <g id="g4">
+          <line x1="0" y1="625" x2="1700" y2="625"/><line x1="850" y1="0" x2="850" y2="1250"/>
+        </g>
+        <g id="g6" style="display:none">
+          <line x1="0" y1="625" x2="1700" y2="625"/><line x1="425" y1="-111" x2="1275" y2="1361"/><line x1="1275" y1="-111" x2="425" y2="1361"/>
+        </g>
         <circle class="gdot" cx="850" cy="625" r="6"/>
       </svg>
       <svg id="seams"><defs><filter id="soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="7"/></filter></defs></svg>
@@ -788,6 +796,14 @@ document.getElementById('btnFish').addEventListener('click', () => {
   document.getElementById('btnFish').classList.toggle('on', fisheyeOn);
   document.getElementById('fishBar').classList.toggle('open', fisheyeOn);
   layoutAll();
+});
+let guideMode = 4;
+document.getElementById('btnGuide').addEventListener('click', () => {
+  guideMode = guideMode === 4 ? 6 : 4;
+  document.getElementById('g4').style.display = guideMode === 4 ? '' : 'none';
+  document.getElementById('g6').style.display = guideMode === 6 ? '' : 'none';
+  document.getElementById('btnGuide').classList.toggle('on', guideMode === 6);
+  statusEl.textContent = 'ガイド：' + (guideMode === 4 ? '4分割（十字）' : '6分割（六角）');
 });
 document.getElementById('fishRange').addEventListener('input', (e) => {
   fishK = (e.target.value / 100) * 1.1;
