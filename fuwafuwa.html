@@ -44,6 +44,9 @@
       #76766f; }
   #world { position: absolute; left: 0; top: 0; width: 1700px; height: 1250px; transform-origin: 0 0; }
   #seams { position: absolute; left: 0; top: 0; width: 1700px; height: 1250px; pointer-events: none; }
+  #guides { position: absolute; left: 0; top: 0; width: 1700px; height: 1250px; pointer-events: none; }
+  #guides circle { fill: none; stroke: rgba(255,255,255,.30); stroke-width: 2; stroke-dasharray: 3 11; stroke-linecap: round; }
+  #guides circle.gdot { fill: rgba(255,255,255,.35); stroke: none; }
   .node { position: absolute; transform: translate(-50%, -50%); cursor: grab; touch-action: none; z-index: 2; }
   .node.dragging { cursor: grabbing; z-index: 5; }
   .node .card {
@@ -109,6 +112,8 @@
   #linkSheet .lsrow .who { font-weight: 600; font-size: 15px; margin-bottom: 5px; color: #3c3e36; }
   #linkSheet .lsrow input { width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; color: #33352f;
     border: 1px solid #c9c9c0; border-radius: 14px; background: #fff; }
+  #linkSheet .lsrow textarea { width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; color: #33352f;
+    border: 1px solid #c9c9c0; border-radius: 14px; background: #fff; min-height: 84px; line-height: 1.6; resize: vertical; margin-top: 6px; }
   #linkSheet .lscut { margin-top: 6px; font: inherit; font-size: 13.5px; font-weight: 600; min-height: 38px; padding: 6px 16px;
     cursor: pointer; border-radius: 999px; border: 1px solid #d9a49c; color: #8c3a30; background: linear-gradient(160deg, #fdf0ec, #f3d3cb); }
   #linkSheet #lsSave { width: 100%; font: inherit; font-size: 16px; font-weight: 700; min-height: 52px; margin-top: 8px; cursor: pointer;
@@ -220,6 +225,11 @@
   <div id="status">読み込み中…</div>
   <div id="stage">
     <div id="world">
+      <svg id="guides">
+        <circle cx="850" cy="625" r="180"/><circle cx="850" cy="625" r="360"/>
+        <circle cx="850" cy="625" r="540"/><circle cx="850" cy="625" r="720"/>
+        <circle class="gdot" cx="850" cy="625" r="6"/>
+      </svg>
       <svg id="seams"><defs><filter id="soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="7"/></filter></defs></svg>
     </div>
   </div>
@@ -549,12 +559,6 @@ function renderSeams() {
     const ra = a.r * wa.k, rb = b.r * wb.k;
     const d = Math.hypot(wa.x - wb.x, wa.y - wb.y);
     if (Math.abs(d - (ra + rb)) <= 18 && d > 1) {
-      const path = document.createElementNS(NS, 'path');
-      path.setAttribute('d', pairPath(wa, wb, ra, rb));
-      path.setAttribute('fill', 'rgba(169,196,141,0.34)');
-      path.setAttribute('stroke', 'rgba(178,222,142,0.75)');
-      path.setAttribute('stroke-width', '2.5');
-      seams.appendChild(path);
       const mk = (w, op, blur) => {
         const ln = document.createElementNS(NS, 'line');
         ln.setAttribute('x1', wa.x); ln.setAttribute('y1', wa.y); ln.setAttribute('x2', wb.x); ln.setAttribute('y2', wb.y);
@@ -931,9 +935,16 @@ function openLinkSheet(n) {
     who.textContent = '🔗 ' + (other ? other.title : '?');
     const inp = document.createElement('input');
     inp.type = 'text'; inp.value = L.label || '';
-    inp.placeholder = '関係性メモ（例：同じ△の話）';
+    inp.placeholder = 'タイトル（関係の名前）';
     inp.dataset.linkKey = L.a + '|' + L.b;
+    inp.dataset.role = 'title';
     div.appendChild(who); div.appendChild(inp);
+    const ta = document.createElement('textarea');
+    ta.value = L.body || '';
+    ta.placeholder = '本文（この関係について）';
+    ta.dataset.linkKey = L.a + '|' + L.b;
+    ta.dataset.role = 'body';
+    div.appendChild(ta);
     const cut = document.createElement('button');
     cut.type = 'button'; cut.className = 'lscut'; cut.textContent = 'リンクを切る';
     cut.dataset.linkKey = L.a + '|' + L.b;
@@ -954,10 +965,12 @@ function openLinkSheet(n) {
 document.getElementById('lsClose').addEventListener('click', () => lsEl.classList.remove('open'));
 lsEl.addEventListener('click', (ev) => { if (ev.target === lsEl) lsEl.classList.remove('open'); });
 document.getElementById('lsSave').addEventListener('click', () => {
-  lsEl.querySelectorAll('input[data-link-key]').forEach(inp => {
+  lsEl.querySelectorAll('input[data-link-key], textarea[data-link-key]').forEach(inp => {
     const [a, b] = inp.dataset.linkKey.split('|');
     const L = settings.links.find(l => l.a === a && l.b === b);
-    if (L) L.label = inp.value.trim();
+    if (!L) return;
+    if (inp.dataset.role === 'body') L.body = inp.value;
+    else L.label = inp.value.trim();
   });
   scheduleSettingsSave(); renderSeams();
   lsEl.classList.remove('open');
