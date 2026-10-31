@@ -15,12 +15,27 @@
   header .badge { font-size: 11px; background: #e7e2d2; border-radius: 999px; padding: 2px 9px; color: #6d6a5c; }
   header .sp { flex: 1; }
   header button, #detail button, #sheet button {
-    font: inherit; font-size: 13px; border: 1px solid #d8d2bf; background: #fffdf6;
-    border-radius: 999px; padding: 7px 14px; cursor: pointer; color: #44463c;
+    font: inherit; font-size: 15px; font-weight: 600; min-height: 46px;
+    border: 1px solid rgba(255,255,255,.65); color: #3c3e36;
+    background: linear-gradient(160deg, rgba(255,255,255,.97), rgba(230,230,224,.94));
+    border-radius: 999px; padding: 11px 22px; cursor: pointer;
+    box-shadow: 0 5px 16px rgba(28,30,26,.28), inset 0 1.5px 0 rgba(255,255,255,.9);
   }
-  header button:active, #detail button:active { background: #efe9d8; }
-  #crumbs { padding: 0 14px 8px; font-size: 13px; color: #cfcfc6; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-  #crumbs button { font: inherit; font-size: 13px; border: none; background: none; color: #e6f0d8; cursor: pointer; padding: 2px 4px; }
+  header button:active, #detail button:active { transform: translateY(1px); box-shadow: 0 2px 8px rgba(28,30,26,.25); }
+  #detail button {
+    background: linear-gradient(160deg, #f2f9e6, #cde5ae);
+    border-color: rgba(198,228,165,.85); color: #33512a;
+  }
+  #crumbs { padding: 2px 14px 10px; font-size: 14px; color: #efdcb2; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  #crumbs button {
+    font: inherit; font-size: 14px; font-weight: 700; color: #6b4420; cursor: pointer;
+    min-height: 40px; padding: 8px 17px; border-radius: 999px;
+    border: 1px solid rgba(255,244,214,.85);
+    background: linear-gradient(165deg, #f9e9c4 0%, #f0cd93 52%, #e3ac6c 100%);
+    box-shadow: 0 4px 11px rgba(40,30,10,.32), inset 0 2px 3px rgba(255,255,255,.75), inset 0 -4px 6px rgba(165,102,40,.35);
+  }
+  #crumbs button:active { transform: translateY(1px); }
+  #crumbs span { color: #efdcb2; font-size: 15px; }
   #status { padding: 0 14px 6px; font-size: 12px; color: #dcdcd2; min-height: 16px; }
   #stage { position: relative; flex: 1; overflow: hidden; touch-action: none;
     background:
