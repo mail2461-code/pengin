@@ -42,9 +42,9 @@
       radial-gradient(ellipse 70% 50% at 25% 20%, #8e8e87 0%, rgba(142,142,135,0) 60%),
       radial-gradient(ellipse 60% 45% at 80% 85%, #82857a 0%, rgba(130,133,122,0) 65%),
       #76766f; }
-  #world { position: absolute; left: 0; top: 0; width: 1700px; height: 1250px; transform-origin: 0 0; z-index: 2; }
-  #seams { position: absolute; left: 0; top: 0; width: 1700px; height: 1250px; pointer-events: none; }
-  #guides { position: absolute; left: 0; top: 0; width: 1700px; height: 1250px; pointer-events: none; }
+  #world { position: absolute; left: 0; top: 0; width: 2000px; height: 1500px; transform-origin: 0 0; z-index: 2; }
+  #seams { position: absolute; left: 0; top: 0; width: 2000px; height: 1500px; pointer-events: none; }
+  #guides { position: absolute; left: 0; top: 0; width: 2000px; height: 1500px; pointer-events: none; }
   #guides path.gcirc { fill: none; stroke: rgba(255,255,255,.58); stroke-width: 2.5; stroke-dasharray: 3 11; stroke-linecap: round; }
   #guides path.gline { fill: none; stroke: rgba(255,255,255,.5); stroke-width: 2; stroke-dasharray: 14 10; }
   #guides circle.gdot { fill: rgba(255,255,255,.65); stroke: none; }
@@ -209,6 +209,7 @@
     width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; color: #33352f;
     border: 1px solid #c9c9c0; border-radius: 14px; background: #fff; }
   #editor textarea { min-height: 150px; line-height: 1.7; resize: vertical; }
+  #editor input[type="range"] { width: 100%; accent-color: #7fae5c; margin: 2px 0 8px; }
   #editor .kindrow { display: flex; gap: 10px; }
   #editor .kind { flex: 1; font: inherit; font-size: 15px; font-weight: 600; min-height: 46px; padding: 10px; cursor: pointer;
     border-radius: 999px; border: 1px solid #c9c9c0; background: #fff; color: #6a6c62; }
@@ -278,6 +279,10 @@
     <button type="button" class="cchip himawari" data-color="himawari" title="ひまわり"></button>
     <button type="button" class="cchip budou" data-color="budou" title="ぶどう"></button>
   </div>
+  <label>泡の大きさ <span id="edSizeVal">×1</span></label>
+  <input id="edSize" type="range" min="70" max="160" value="100">
+  <label>横のばし（長いタイトル用） <span id="edStretchVal">×1</span></label>
+  <input id="edStretch" type="range" min="100" max="180" value="100">
   <label for="edBody">本文</label>
   <textarea id="edBody"></textarea>
   <div class="edrow">
@@ -296,7 +301,7 @@
 const SUPABASE_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const WORLD_W = 1700, WORLD_H = 1250;
+const WORLD_W = 2000, WORLD_H = 1500;
 const POS_KEY = 'fuwaPosV1';
 
 let rows = [], byId = new Map();
@@ -305,10 +310,10 @@ let nodes = []; // {id,title,kind,r,x,y,el}
 let view = { x: 0, y: 0, s: 0.5 };
 let selectedId = null;
 function normalizeSettings(p) {
-  if (p && typeof p === 'object' && p.pos) return { pos: p.pos || {}, color: p.color || {}, links: p.links || [] };
-  return { pos: (p && typeof p === 'object') ? p : {}, color: {}, links: [] };
+  if (p && typeof p === 'object' && p.pos) return { pos: p.pos || {}, color: p.color || {}, links: p.links || [], size: p.size || {} };
+  return { pos: (p && typeof p === 'object') ? p : {}, color: {}, links: [], size: {} };
 }
-let settings = { pos: {}, color: {}, links: [] };
+let settings = { pos: {}, color: {}, links: [], size: {} };
 try { settings = normalizeSettings(JSON.parse(localStorage.getItem(POS_KEY) || '{}')); } catch (e) {}
 let layoutRowId = null, layoutTimer = null, settingsDirty = false, appReady = false;
 function scheduleSettingsSave() {
@@ -359,6 +364,8 @@ function buildLevel(pid) {
   const posMap = settings.pos[pid] || {};
   nodes = kids.map((r, i) => {
     const rad = r.kind === 'folder' ? 66 : 54;
+    const szp = settings.size[r.id] || {};
+    const ss = szp.s || 1, se = szp.e || 1;
     let p = posMap[r.id];
     if (!p) {
       const ang = i * 2.39996, dist = 130 * Math.sqrt(i + 0.6);
@@ -367,7 +374,7 @@ function buildLevel(pid) {
     const el = document.createElement('div');
     el.className = 'node ' + (r.kind === 'folder' ? 'folder' : 'page') + (settings.color[r.id] ? ' c-' + settings.color[r.id] : '');
     el.dataset.id = r.id;
-    el.style.width = rad * 2 + 'px'; el.style.height = rad * 2 + 'px';
+    el.style.width = rad * 2 * ss * se + 'px'; el.style.height = rad * 2 * ss + 'px';
     const card = document.createElement('div');
     card.className = 'card';
     card.style.animationDuration = (3.4 + (i % 5) * 0.45) + 's';
@@ -375,7 +382,7 @@ function buildLevel(pid) {
     card.textContent = r.title;
     el.appendChild(card);
     world.appendChild(el);
-    const n = { id: r.id, title: r.title, kind: r.kind, r: rad, x: p.x, y: p.y, el };
+    const n = { id: r.id, title: r.title, kind: r.kind, r: rad * ss, er: rad * ss * (se + 1) / 2, x: p.x, y: p.y, el };
     place(n);
     return n;
   });
@@ -558,16 +565,17 @@ function renderDetail() {
 
 function linkCount(id) { return settings.links.filter(l => l.a === id || l.b === id).length; }
 function isLinked(a, b) { return settings.links.some(l => (l.a === a && l.b === b) || (l.a === b && l.b === a)); }
+function ER(n) { return n.er || n.r; }
 function pairPartner(n) {
   for (const o of nodes) {
     if (o === n) continue;
     const d = Math.hypot(n.x - o.x, n.y - o.y);
-    if (Math.abs(d - (n.r + o.r)) <= 22) return o;
+    if (Math.abs(d - (ER(n) + ER(o))) <= 22) return o;
   }
   return null;
 }
 function dissolveNode(n) {
-  const partners = nodes.filter(o => o !== n && Math.abs(Math.hypot(n.x - o.x, n.y - o.y) - (n.r + o.r)) <= 22);
+  const partners = nodes.filter(o => o !== n && Math.abs(Math.hypot(n.x - o.x, n.y - o.y) - (ER(n) + ER(o))) <= 22);
   if (!partners.length) return;
   linkAsk = null;
   const cx = partners.reduce((s, o) => s + o.x, 0) / partners.length;
@@ -578,7 +586,7 @@ function dissolveNode(n) {
   for (let i = 0; i < 14; i++) {
     n.x = Math.min(WORLD_W - n.r, Math.max(n.r, n.x + dx * 34));
     n.y = Math.min(WORLD_H - n.r, Math.max(n.r, n.y + dy * 34));
-    const still = partners.some(o => Math.hypot(n.x - o.x, n.y - o.y) < n.r + o.r + 26);
+    const still = partners.some(o => Math.hypot(n.x - o.x, n.y - o.y) < ER(n) + ER(o) + 26);
     if (!still) break;
   }
   place(n); savePos(); renderSeams();
@@ -641,7 +649,7 @@ function renderSeams() {
   for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
     const a = nodes[i], b = nodes[j];
     const wa = warpPoint(a.x, a.y), wb = warpPoint(b.x, b.y);
-    const ra = a.r * wa.k, rb = b.r * wb.k;
+    const ra = ER(a) * wa.k, rb = ER(b) * wb.k;
     const d = Math.hypot(wa.x - wb.x, wa.y - wb.y);
     if (Math.abs(d - (ra + rb)) <= 18 && d > 1) {
       const mk = (w, op, blur) => {
@@ -671,7 +679,7 @@ function buildGroup(n) {
     for (const o of nodes) {
       if (seen.has(o.id)) continue;
       const d = Math.hypot(c.x - o.x, c.y - o.y);
-      if (Math.abs(d - (c.r + o.r)) <= 22) { seen.set(o.id, o); queue.push(o); }
+      if (Math.abs(d - (ER(c) + ER(o))) <= 22) { seen.set(o.id, o); queue.push(o); }
     }
   }
   return [...seen.values()].map(m => ({ node: m, dx: m.x - n.x, dy: m.y - n.y }));
@@ -789,7 +797,7 @@ stage.addEventListener('pointermove', (ev) => {
     snapTarget = null;
     for (const o of nodes) {
       if (o === dragNode || dragGroupIds.has(o.id)) continue;
-      const d = Math.hypot(nx - o.x, ny - o.y), want = dragNode.r + o.r + 4;
+      const d = Math.hypot(nx - o.x, ny - o.y), want = ER(dragNode) + ER(o) + 4;
       if (Math.abs(d - want) < 30 && d > 1) {
         const k = want / d;
         nx = o.x + (nx - o.x) * k; ny = o.y + (ny - o.y) * k;
@@ -911,8 +919,8 @@ function folderDropTarget(ev) {
   if (fisheyeOn) w = unwarpPoint(w.x, w.y);
   for (const o of nodes) {
     if (o === dragNode || o.kind !== 'folder') continue;
-    if (Math.hypot(w.x - o.x, w.y - o.y) < o.r + 6) return o;
-    if (dragNode && Math.hypot(dragNode.x - o.x, dragNode.y - o.y) < o.r + dragNode.r * 0.35) return o;
+    if (Math.hypot(w.x - o.x, w.y - o.y) < ER(o) + 6) return o;
+    if (dragNode && Math.hypot(dragNode.x - o.x, dragNode.y - o.y) < ER(o) + ER(dragNode) * 0.35) return o;
   }
   return null;
 }
@@ -1016,6 +1024,12 @@ function openEditor(n) {
   setEdColor(n ? (settings.color[n.id] || 'auto') : 'auto');
   edHeading.textContent = n ? '編集' : '新規作成（' + (currentParent === 'root' ? 'トップ' : folderName(currentParent)) + 'の中）';
   edTitle.value = n ? n.title : '';
+  const szNow = n ? (settings.size[n.id] || {}) : {};
+  const esEl = document.getElementById('edSize'), ewEl = document.getElementById('edStretch');
+  esEl.value = Math.round((szNow.s || 1) * 100);
+  ewEl.value = Math.round((szNow.e || 1) * 100);
+  document.getElementById('edSizeVal').textContent = '×' + (esEl.value / 100);
+  document.getElementById('edStretchVal').textContent = '×' + (ewEl.value / 100);
   const row = n ? byId.get(n.id) : null;
   edBody.value = row ? (row.content || '') : '';
   edDelete.style.display = n ? '' : 'none';
@@ -1025,6 +1039,8 @@ function closeEditor() { editorEl.classList.remove('open'); }
 document.getElementById('edClose').addEventListener('click', closeEditor);
 editorEl.addEventListener('click', (ev) => { if (ev.target === editorEl) closeEditor(); });
 document.getElementById('btnNew').addEventListener('click', () => openEditor(null));
+document.getElementById('edSize').addEventListener('input', (e) => { document.getElementById('edSizeVal').textContent = '×' + (e.target.value / 100); });
+document.getElementById('edStretch').addEventListener('input', (e) => { document.getElementById('edStretchVal').textContent = '×' + (e.target.value / 100); });
 
 document.getElementById('edSave').addEventListener('click', async () => {
   const title = edTitle.value.trim();
@@ -1036,6 +1052,8 @@ document.getElementById('edSave').addEventListener('click', async () => {
     const r = byId.get(editingId);
     if (r) Object.assign(r, { title, kind: edKind, content: body });
     if (edColor === 'auto') delete settings.color[editingId]; else settings.color[editingId] = edColor;
+    const sv = document.getElementById('edSize').value / 100, ev2 = document.getElementById('edStretch').value / 100;
+    if (sv === 1 && ev2 === 1) delete settings.size[editingId]; else settings.size[editingId] = { s: sv, e: ev2 };
     scheduleSettingsSave();
     const keep = editingId;
     closeEditor(); buildLevel(currentParent); select(keep);
@@ -1177,7 +1195,7 @@ sIn.addEventListener('input', () => {
 // ===== お散歩ペンギン（ワールド座標：魚眼で一緒に歪む） =====
 const penguinEl = document.getElementById('penguin');
 const penguinFlip = document.getElementById('penguinFlip');
-const POND = { x: 850, y: 1215 };
+const POND = { x: 1000, y: 1390 };
 let pg = null, pgLast = 0;
 function placePenguin() {
   if (!pg) return;
