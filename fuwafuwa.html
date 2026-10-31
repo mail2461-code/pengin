@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>pengin ふわふわ（試作）</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; background: #f4f1e8; color: #33352f; overflow: hidden; }
+  #app { display: flex; flex-direction: column; height: 100dvh; }
+  header { padding: 10px 14px 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  header .ttl { font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; font-size: 19px; letter-spacing: .04em; }
+  header .badge { font-size: 11px; background: #e7e2d2; border-radius: 999px; padding: 2px 9px; color: #6d6a5c; }
+  header .sp { flex: 1; }
+  header button, #detail button, #sheet button {
+    font: inherit; font-size: 13px; border: 1px solid #d8d2bf; background: #fffdf6;
+    border-radius: 999px; padding: 7px 14px; cursor: pointer; color: #44463c;
+  }
+  header button:active, #detail button:active { background: #efe9d8; }
+  #crumbs { padding: 0 14px 8px; font-size: 13px; color: #7a7767; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  #crumbs button { font: inherit; font-size: 13px; border: none; background: none; color: #5c7a4e; cursor: pointer; padding: 2px 4px; }
+  #status { padding: 0 14px 6px; font-size: 12px; color: #9a9687; min-height: 16px; }
+  #stage { position: relative; flex: 1; overflow: hidden; touch-action: none;
+    background:
+      radial-gradient(ellipse 70% 50% at 25% 20%, #fdfbf3 0%, rgba(253,251,243,0) 60%),
+      radial-gradient(ellipse 60% 45% at 80% 85%, #eef3e2 0%, rgba(238,243,226,0) 65%),
+      #f4f1e8; }
+  #world { position: absolute; left: 0; top: 0; width: 1700px; height: 1250px; transform-origin: 0 0; }
+  #seams { position: absolute; left: 0; top: 0; width: 1700px; height: 1250px; pointer-events: none; }
+  .node { position: absolute; transform: translate(-50%, -50%); cursor: grab; touch-action: none; z-index: 2; }
+  .node.dragging { cursor: grabbing; z-index: 5; }
+  .node .card {
+    width: 100%; height: 100%; border-radius: 38% 62% 60% 40% / 45% 42% 58% 55%;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    padding: 12px; font-size: 14px; line-height: 1.35; word-break: break-all;
+    box-shadow: 0 10px 24px rgba(90, 95, 70, .16), inset 0 2px 6px rgba(255,255,255,.55);
+    animation: fuwa ease-in-out infinite alternate; user-select: none; -webkit-user-select: none;
+  }
+  .node.folder .card { background: linear-gradient(145deg, #d9efc6, #b7dd97); color: #39512a; font-weight: 600; }
+  .node.page .card { background: linear-gradient(145deg, #ffffff, #e9e7df); color: #4a4c44; }
+  .node.selected .card { outline: 3px solid #fff; box-shadow: 0 0 0 5px rgba(140,175,110,.45), 0 14px 30px rgba(90,95,70,.22); }
+  .node.snapcand .card { box-shadow: 0 0 0 6px rgba(255,255,255,.75), 0 14px 30px rgba(90,95,70,.25); }
+  @keyframes fuwa { from { transform: translateY(-5px) rotate(-1.1deg); } to { transform: translateY(6px) rotate(1.1deg); } }
+  .node.dragging .card, .node.selected .card { animation-play-state: paused; }
+  #detail { min-height: 54px; padding: 8px 14px calc(8px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 10px;
+    background: rgba(255,253,246,.92); border-top: 1px solid #e3ddca; backdrop-filter: blur(6px); }
+  #detail .dt { flex: 1; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #detail .dk { font-size: 11px; color: #8b887a; margin-right: 6px; }
+  #sheet { position: fixed; inset: 0; background: rgba(50,52,44,.45); display: none; z-index: 20; }
+  #sheet.open { display: block; }
+  #sheet .box { position: absolute; left: 0; right: 0; bottom: 0; max-height: 78dvh; overflow: auto; background: #fffdf6;
+    border-radius: 20px 20px 0 0; padding: 18px 20px calc(20px + env(safe-area-inset-bottom)); }
+  #sheet h2 { font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; font-size: 19px; margin: 0 0 10px; }
+  #sheet .body { white-space: pre-wrap; font-size: 14.5px; line-height: 1.75; color: #3c3e36; }
+  #sheet .close { position: sticky; top: 0; float: right; }
+  @media (prefers-reduced-motion: reduce) { .node .card { animation: none; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <span class="ttl">pengin ふわふわ</span>
+    <span class="badge">試作・読み取り専用</span>
+    <span class="sp"></span>
+    <button id="btnFit" type="button">全体</button>
+    <button id="btnReset" type="button">並びをリセット</button>
+  </header>
+  <div id="crumbs"></div>
+  <div id="status">読み込み中…</div>
+  <div id="stage">
+    <div id="world">
+      <svg id="seams"><defs><filter id="soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="7"/></filter></defs></svg>
+    </div>
+  </div>
+  <div id="detail"><span class="dt" style="color:#9a9687">カードをタップすると、カメラが寄ります</span></div>
+</div>
+<div id="sheet"><div class="box"><button class="close" id="sheetClose" type="button">閉じる</button><h2 id="sheetTitle"></h2><div class="body" id="sheetBody"></div></div></div>
+
+<script>
+const SUPABASE_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const WORLD_W = 1700, WORLD_H = 1250;
+const POS_KEY = 'fuwaPosV1';
+
+let rows = [], byId = new Map();
+let currentParent = 'root';
+let nodes = []; // {id,title,kind,r,x,y,el}
+let view = { x: 0, y: 0, s: 0.5 };
+let selectedId = null;
+let savedPos = {};
+try { savedPos = JSON.parse(localStorage.getItem(POS_KEY) || '{}'); } catch (e) { savedPos = {}; }
+
+const stage = document.getElementById('stage');
+const world = document.getElementById('world');
+const seams = document.getElementById('seams');
+const statusEl = document.getElementById('status');
+const crumbsEl = document.getElementById('crumbs');
+const detailEl = document.getElementById('detail');
+
+function childrenOf(pid) {
+  return rows.filter(r => (pid === 'root' ? r.parent_id === null : r.parent_id === pid))
+             .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+}
+function folderName(id) { const r = byId.get(id); return r ? r.title : ''; }
+
+async function load() {
+  const { data, error } = await sb.from('wiki_pages').select('*').order('sort_order', { ascending: true });
+  if (error) { statusEl.textContent = '読み込みに失敗しました：' + error.message; return; }
+  rows = data || [];
+  byId = new Map(rows.map(r => [r.id, r]));
+  statusEl.textContent = '全 ' + rows.length + ' ページ（並びはこの端末にだけ保存されます）';
+  buildLevel('root');
+  fitView(false);
+}
+
+function buildLevel(pid) {
+  currentParent = pid;
+  selectedId = null;
+  world.querySelectorAll('.node').forEach(el => el.remove());
+  seams.querySelectorAll('line').forEach(el => el.remove());
+  const kids = childrenOf(pid);
+  const posMap = savedPos[pid] || {};
+  nodes = kids.map((r, i) => {
+    const rad = r.kind === 'folder' ? 66 : 54;
+    let p = posMap[r.id];
+    if (!p) {
+      const ang = i * 2.39996, dist = 130 * Math.sqrt(i + 0.6);
+      p = { x: WORLD_W / 2 + dist * Math.cos(ang), y: WORLD_H / 2 + dist * Math.sin(ang) * 0.82 };
+    }
+    const el = document.createElement('div');
+    el.className = 'node ' + (r.kind === 'folder' ? 'folder' : 'page');
+    el.dataset.id = r.id;
+    el.style.width = rad * 2 + 'px'; el.style.height = rad * 2 + 'px';
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.animationDuration = (3.4 + (i % 5) * 0.45) + 's';
+    card.style.animationDelay = (-(i % 7) * 0.6) + 's';
+    card.textContent = r.title;
+    el.appendChild(card);
+    world.appendChild(el);
+    const n = { id: r.id, title: r.title, kind: r.kind, r: rad, x: p.x, y: p.y, el };
+    place(n);
+    return n;
+  });
+  renderCrumbs();
+  renderDetail();
+  renderSeams();
+}
+
+function place(n) { n.el.style.left = n.x + 'px'; n.el.style.top = n.y + 'px'; }
+function applyView() { world.style.transform = 'translate(' + view.x + 'px,' + view.y + 'px) scale(' + view.s + ')'; }
+
+function renderCrumbs() {
+  crumbsEl.innerHTML = '';
+  const path = [];
+  let cur = currentParent;
+  while (cur !== 'root') { path.unshift(cur); cur = (byId.get(cur) || {}).parent_id || 'root'; }
+  const mk = (label, pid) => {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = label;
+    b.addEventListener('click', () => { buildLevel(pid); fitView(true); });
+    crumbsEl.appendChild(b);
+  };
+  mk('🏠 トップ', 'root');
+  path.forEach(id => { const s = document.createElement('span'); s.textContent = '›'; crumbsEl.appendChild(s); mk(folderName(id), id); });
+}
+
+function renderDetail() {
+  detailEl.innerHTML = '';
+  const n = nodes.find(x => x.id === selectedId);
+  if (!n) {
+    const s = document.createElement('span'); s.className = 'dt'; s.style.color = '#9a9687';
+    s.textContent = 'カードをタップすると、カメラが寄ります';
+    detailEl.appendChild(s); return;
+  }
+  const k = document.createElement('span'); k.className = 'dk'; k.textContent = n.kind === 'folder' ? 'フォルダ' : 'ページ';
+  const t = document.createElement('span'); t.className = 'dt'; t.textContent = n.title;
+  detailEl.appendChild(k); detailEl.appendChild(t);
+  const b = document.createElement('button'); b.type = 'button';
+  b.textContent = n.kind === 'folder' ? '開く ›' : '本文を見る';
+  b.addEventListener('click', () => { if (n.kind === 'folder') { buildLevel(n.id); fitView(true); } else openSheet(n); });
+  detailEl.appendChild(b);
+}
+
+function renderSeams() {
+  seams.querySelectorAll('line').forEach(el => el.remove());
+  for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
+    const a = nodes[i], b = nodes[j];
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (Math.abs(d - (a.r + b.r)) <= 16) {
+      const mk = (w, op, blur) => {
+        const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        ln.setAttribute('x1', a.x); ln.setAttribute('y1', a.y); ln.setAttribute('x2', b.x); ln.setAttribute('y2', b.y);
+        ln.setAttribute('stroke', '#a9c48d'); ln.setAttribute('stroke-width', w); ln.setAttribute('stroke-linecap', 'round');
+        ln.setAttribute('opacity', op); if (blur) ln.setAttribute('filter', 'url(#soft)');
+        seams.appendChild(ln);
+      };
+      mk(30, 0.4, true); mk(3, 0.25, false);
+    }
+  }
+}
+</script>
+<script>
+// ===== 操作（パン／ズーム／ドラッグ／吸着／カメラ） =====
+const pointers = new Map();
+let dragNode = null, dragOff = { x: 0, y: 0 }, dragMoved = false, snapTarget = null;
+let panStart = null, pinchStart = null, camAnim = null;
+
+function toWorld(cx, cy) {
+  const r = stage.getBoundingClientRect();
+  return { x: (cx - r.left - view.x) / view.s, y: (cy - r.top - view.y) / view.s };
+}
+function cancelCam() { if (camAnim) { cancelAnimationFrame(camAnim); camAnim = null; } }
+function animateView(to, dur) {
+  cancelCam();
+  const from = { ...view }, t0 = performance.now();
+  const step = (t) => {
+    const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    view = { x: from.x + (to.x - from.x) * e, y: from.y + (to.y - from.y) * e, s: from.s + (to.s - from.s) * e };
+    applyView();
+    camAnim = k < 1 ? requestAnimationFrame(step) : null;
+  };
+  camAnim = requestAnimationFrame(step);
+}
+function fitView(anim) {
+  const r = stage.getBoundingClientRect();
+  const s = Math.min(r.width / WORLD_W, r.height / WORLD_H) * 1.02;
+  const to = { s, x: (r.width - WORLD_W * s) / 2, y: (r.height - WORLD_H * s) / 2 };
+  if (anim) animateView(to, 380); else { view = to; applyView(); }
+}
+function centerOn(n) {
+  const r = stage.getBoundingClientRect();
+  const s = Math.max(view.s, 0.92);
+  animateView({ s, x: r.width / 2 - n.x * s, y: r.height / 2 - n.y * s }, 430);
+}
+function select(id) {
+  selectedId = id;
+  nodes.forEach(n => n.el.classList.toggle('selected', n.id === id));
+  renderDetail();
+}
+function savePos() {
+  const m = {};
+  nodes.forEach(n => { m[n.id] = { x: Math.round(n.x), y: Math.round(n.y) }; });
+  savedPos[currentParent] = m;
+  try { localStorage.setItem(POS_KEY, JSON.stringify(savedPos)); } catch (e) {}
+}
+
+stage.addEventListener('pointerdown', (ev) => {
+  pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+  cancelCam();
+  if (pointers.size === 2) {
+    const [p, q] = [...pointers.values()];
+    pinchStart = { d: Math.hypot(p.x - q.x, p.y - q.y), cx: (p.x + q.x) / 2, cy: (p.y + q.y) / 2, view: { ...view } };
+    dragNode = null; panStart = null;
+    return;
+  }
+  const nodeEl = ev.target.closest('.node');
+  if (nodeEl) {
+    const n = nodes.find(x => x.id === nodeEl.dataset.id);
+    if (n) {
+      const w = toWorld(ev.clientX, ev.clientY);
+      dragNode = n; dragOff = { x: n.x - w.x, y: n.y - w.y }; dragMoved = false; snapTarget = null;
+      n.el.classList.add('dragging');
+      stage.setPointerCapture(ev.pointerId);
+    }
+  } else {
+    panStart = { x: ev.clientX, y: ev.clientY, view: { ...view } };
+    stage.setPointerCapture(ev.pointerId);
+  }
+});
+
+stage.addEventListener('pointermove', (ev) => {
+  if (!pointers.has(ev.pointerId)) return;
+  pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+  if (pinchStart && pointers.size === 2) {
+    const [p, q] = [...pointers.values()];
+    const d = Math.hypot(p.x - q.x, p.y - q.y), cx = (p.x + q.x) / 2, cy = (p.y + q.y) / 2;
+    const r = stage.getBoundingClientRect();
+    const s = Math.min(2.4, Math.max(0.3, pinchStart.view.s * d / pinchStart.d));
+    const wx = (pinchStart.cx - r.left - pinchStart.view.x) / pinchStart.view.s;
+    const wy = (pinchStart.cy - r.top - pinchStart.view.y) / pinchStart.view.s;
+    view = { s, x: cx - r.left - wx * s + (cx - pinchStart.cx) * 0, y: cy - r.top - wy * s };
+    applyView();
+    return;
+  }
+  if (dragNode) {
+    const w = toWorld(ev.clientX, ev.clientY);
+    let nx = w.x + dragOff.x, ny = w.y + dragOff.y;
+    if (Math.hypot(nx - dragNode.x, ny - dragNode.y) > 2) dragMoved = true;
+    nx = Math.min(WORLD_W - dragNode.r, Math.max(dragNode.r, nx));
+    ny = Math.min(WORLD_H - dragNode.r, Math.max(dragNode.r, ny));
+    snapTarget = null;
+    for (const o of nodes) {
+      if (o === dragNode) continue;
+      const d = Math.hypot(nx - o.x, ny - o.y), want = dragNode.r + o.r + 4;
+      if (Math.abs(d - want) < 30 && d > 1) {
+        const k = want / d;
+        nx = o.x + (nx - o.x) * k; ny = o.y + (ny - o.y) * k;
+        snapTarget = o; dragMoved = true;
+        break;
+      }
+    }
+    dragNode.x = nx; dragNode.y = ny; place(dragNode);
+    nodes.forEach(o => o.el.classList.toggle('snapcand', o === snapTarget));
+    renderSeams();
+    return;
+  }
+  if (panStart) {
+    view = { ...panStart.view, x: panStart.view.x + (ev.clientX - panStart.x), y: panStart.view.y + (ev.clientY - panStart.y) };
+    applyView();
+  }
+});
+
+function endPointer(ev) {
+  pointers.delete(ev.pointerId);
+  if (pointers.size < 2) pinchStart = null;
+  if (dragNode) {
+    const n = dragNode;
+    n.el.classList.remove('dragging');
+    nodes.forEach(o => o.el.classList.remove('snapcand'));
+    if (dragMoved) { savePos(); renderSeams(); }
+    else { select(n.id); centerOn(n); }
+    dragNode = null; snapTarget = null;
+    return;
+  }
+  if (panStart) {
+    const moved = Math.hypot(ev.clientX - panStart.x, ev.clientY - panStart.y);
+    if (moved < 6 && !ev.target.closest('.node')) select(null);
+    panStart = null;
+  }
+}
+stage.addEventListener('pointerup', endPointer);
+stage.addEventListener('pointercancel', endPointer);
+
+stage.addEventListener('wheel', (ev) => {
+  ev.preventDefault(); cancelCam();
+  const r = stage.getBoundingClientRect();
+  const wx = (ev.clientX - r.left - view.x) / view.s, wy = (ev.clientY - r.top - view.y) / view.s;
+  const s = Math.min(2.4, Math.max(0.3, view.s * (ev.deltaY < 0 ? 1.09 : 0.92)));
+  view = { s, x: ev.clientX - r.left - wx * s, y: ev.clientY - r.top - wy * s };
+  applyView();
+}, { passive: false });
+
+// ===== 本文シート =====
+const sheet = document.getElementById('sheet');
+function openSheet(n) {
+  const row = byId.get(n.id);
+  document.getElementById('sheetTitle').textContent = n.title;
+  document.getElementById('sheetBody').textContent = (row && row.content) ? row.content : '（本文は空です）';
+  sheet.classList.add('open');
+}
+document.getElementById('sheetClose').addEventListener('click', () => sheet.classList.remove('open'));
+sheet.addEventListener('click', (ev) => { if (ev.target === sheet) sheet.classList.remove('open'); });
+
+// ===== ボタン =====
+document.getElementById('btnFit').addEventListener('click', () => { select(null); fitView(true); });
+document.getElementById('btnReset').addEventListener('click', () => {
+  delete savedPos[currentParent];
+  try { localStorage.setItem(POS_KEY, JSON.stringify(savedPos)); } catch (e) {}
+  buildLevel(currentParent); fitView(true);
+});
+window.addEventListener('resize', () => fitView(false));
+
+load();
+</script>
+</body>
+</html>
