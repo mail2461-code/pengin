@@ -889,8 +889,9 @@ function folderDropTarget(ev) {
   let w = toWorld(ev.clientX, ev.clientY);
   if (fisheyeOn) w = unwarpPoint(w.x, w.y);
   for (const o of nodes) {
-    if (o === dragNode || o.kind !== 'folder' || dragGroupIds.has(o.id)) continue;
-    if (Math.hypot(w.x - o.x, w.y - o.y) < o.r) return o;
+    if (o === dragNode || o.kind !== 'folder') continue;
+    if (Math.hypot(w.x - o.x, w.y - o.y) < o.r + 6) return o;
+    if (dragNode && Math.hypot(dragNode.x - o.x, dragNode.y - o.y) < o.r + dragNode.r * 0.35) return o;
   }
   return null;
 }
