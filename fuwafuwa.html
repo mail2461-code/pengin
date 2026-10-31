@@ -42,7 +42,7 @@
       radial-gradient(ellipse 70% 50% at 25% 20%, #8e8e87 0%, rgba(142,142,135,0) 60%),
       radial-gradient(ellipse 60% 45% at 80% 85%, #82857a 0%, rgba(130,133,122,0) 65%),
       #76766f; }
-  #world { position: absolute; left: 0; top: 0; width: 1700px; height: 1250px; transform-origin: 0 0; }
+  #world { position: absolute; left: 0; top: 0; width: 1700px; height: 1250px; transform-origin: 0 0; z-index: 2; }
   #seams { position: absolute; left: 0; top: 0; width: 1700px; height: 1250px; pointer-events: none; }
   #guides { position: absolute; left: 0; top: 0; width: 1700px; height: 1250px; pointer-events: none; }
   #guides path.gcirc { fill: none; stroke: rgba(255,255,255,.58); stroke-width: 2.5; stroke-dasharray: 3 11; stroke-linecap: round; }
@@ -108,7 +108,15 @@
     padding: 11px 14px; background: none; border: none; border-bottom: 1px solid #e6e6de; color: #33352f; cursor: pointer; }
   #searchResults .sres:last-child { border-bottom: none; }
   #searchResults .snone { padding: 11px 14px; font-size: 14px; color: #8b887a; }
-  #walkers { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 3; }
+  #walkers { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 1; }
+  #pond { position: absolute; right: 6px; bottom: 4px; width: 224px; height: 104px; border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 45%, rgba(205,235,250,.9) 0%, rgba(150,205,240,.55) 52%, rgba(150,205,240,0) 72%);
+    pointer-events: none; }
+  #pond::after { content: ''; position: absolute; inset: 18px 30px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.5); animation: ripple 3.2s ease-out infinite; }
+  @keyframes ripple { from { transform: scale(.55); opacity: .8; } to { transform: scale(1.15); opacity: 0; } }
+  .node.dropcand .card { outline: 3px dashed rgba(255,255,255,.95); outline-offset: 4px; }
+  #crumbs button.dropcand { filter: brightness(1.1); transform: scale(1.07); }
   .walker { position: absolute; left: 0; top: 0; pointer-events: none; will-change: transform; }
   .walker svg { width: 100%; height: auto; display: block; animation: waddle .34s ease-in-out infinite alternate;
     filter: drop-shadow(0 3px 3px rgba(20,22,18,.35)); }
@@ -246,11 +254,11 @@
   <div id="crumbs"></div>
   <div id="status">読み込み中…</div>
   <div id="stage">
+    <div id="walkers"></div>
     <div id="world">
       <svg id="guides"><g id="gWarp"></g></svg>
       <svg id="seams"><defs><filter id="soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="7"/></filter></defs></svg>
     </div>
-    <div id="walkers"></div>
   </div>
   <div id="detail"><span class="dt" style="color:#9a9687">カードをタップすると、カメラが寄ります</span></div>
 </div>
@@ -460,6 +468,7 @@ function renderCrumbs() {
   while (cur !== 'root') { path.unshift(cur); cur = (byId.get(cur) || {}).parent_id || 'root'; }
   const mk = (label, pid) => {
     const b = document.createElement('button'); b.type = 'button'; b.textContent = '🍞 ' + label;
+    b.dataset.pid = pid;
     b.addEventListener('click', () => { buildLevel(pid); fitView(true); });
     crumbsEl.appendChild(b);
   };
@@ -775,6 +784,10 @@ stage.addEventListener('pointermove', (ev) => {
       place(m.node);
     }
     nodes.forEach(o => o.el.classList.toggle('snapcand', o === snapTarget));
+    const ft = folderDropTarget(ev);
+    nodes.forEach(o => o.el.classList.toggle('dropcand', o === ft));
+    const cp = crumbDropTarget(ev);
+    document.querySelectorAll('#crumbs button').forEach(b => b.classList.toggle('dropcand', !!cp && b.dataset.pid === cp && cp !== currentParent));
     renderSeams();
     return;
   }
@@ -792,9 +805,17 @@ function endPointer(ev) {
     dragGroup.forEach(m => m.node.el.classList.remove('dragging'));
     nodes.forEach(o => o.el.classList.remove('snapcand'));
     if (dragMoved) {
-      savePos(); renderSeams();
-      const o = pairPartner(n);
-      if (o && !dragStartPartners.has(o.id) && !isLinked(n.id, o.id)) { linkAsk = { a: n.id, b: o.id }; renderDetail(); }
+      const ft = folderDropTarget(ev);
+      const cp = crumbDropTarget(ev);
+      nodes.forEach(o => o.el.classList.remove('dropcand'));
+      document.querySelectorAll('#crumbs button').forEach(b => b.classList.remove('dropcand'));
+      if (cp && cp !== currentParent) moveNodeTo(n, cp);
+      else if (ft) moveNodeTo(n, ft.id);
+      else {
+        savePos(); renderSeams();
+        const o = pairPartner(n);
+        if (o && !dragStartPartners.has(o.id) && !isLinked(n.id, o.id)) { linkAsk = { a: n.id, b: o.id }; renderDetail(); }
+      }
     }
     else if (linkMode && selectedId && selectedId !== n.id) { toggleLink(selectedId, n.id); linkMode = false; renderDetail(); }
     else if (linkMode && selectedId === n.id) { linkMode = false; renderDetail(); }
@@ -864,6 +885,42 @@ function applyTheme() {
 }
 applyTheme();
 setInterval(applyTheme, 60000);
+function folderDropTarget(ev) {
+  let w = toWorld(ev.clientX, ev.clientY);
+  if (fisheyeOn) w = unwarpPoint(w.x, w.y);
+  for (const o of nodes) {
+    if (o === dragNode || o.kind !== 'folder' || dragGroupIds.has(o.id)) continue;
+    if (Math.hypot(w.x - o.x, w.y - o.y) < o.r) return o;
+  }
+  return null;
+}
+function crumbDropTarget(ev) {
+  const el = document.elementFromPoint(ev.clientX, ev.clientY);
+  const b = el && el.closest ? el.closest('#crumbs button') : null;
+  return b ? b.dataset.pid : null;
+}
+async function moveNodeTo(n, targetPid) {
+  const target = targetPid === 'root' ? null : targetPid;
+  if (n.kind === 'folder') {
+    let cur = target;
+    while (cur) {
+      if (cur === n.id) { statusEl.textContent = '自分のフォルダの中には移動できません'; return; }
+      cur = (byId.get(cur) || {}).parent_id || null;
+    }
+  }
+  const order = childrenOf(targetPid).length;
+  const { error } = await sb.from('wiki_pages').update({ parent_id: target, sort_order: order }).eq('id', n.id);
+  if (error) { statusEl.textContent = '移動に失敗しました：' + error.message; return; }
+  const row = byId.get(n.id);
+  if (row) row.parent_id = target;
+  const beforeLinks = settings.links.length;
+  settings.links = settings.links.filter(l => l.a !== n.id && l.b !== n.id);
+  if (settings.pos[currentParent]) delete settings.pos[currentParent][n.id];
+  scheduleSettingsSave();
+  const targetName = targetPid === 'root' ? 'トップ' : folderName(targetPid);
+  buildLevel(currentParent);
+  statusEl.textContent = '「' + n.title + '」を ' + targetName + ' に移動しました' + (settings.links.length !== beforeLinks ? '（リンクは切りました）' : '');
+}
 async function reloadData() {
   statusEl.textContent = '更新中…';
   const { data, error } = await sb.from('wiki_pages').select('*').order('sort_order', { ascending: true });
@@ -1098,6 +1155,9 @@ const PENGUIN_SVG =
   '<path d="M44 50 L56 50 L50 58 Z" fill="#f2a541"/>' +
   '</svg>';
 let walkers = [], walkStarted = false, walkLast = 0;
+function pondPoint() {
+  return { x: Math.max(60, stage.clientWidth - 118), y: Math.max(60, stage.clientHeight - 64) };
+}
 function pickTarget(w) {
   w.tx = 16 + Math.random() * Math.max(60, stage.clientWidth - 32);
   w.ty = 16 + Math.random() * Math.max(60, stage.clientHeight - 60);
@@ -1107,46 +1167,53 @@ function spawnWalkers() {
   walkStarted = true;
   if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const layer = document.getElementById('walkers');
-  for (let i = 0; i < 10; i++) {
-    const el = document.createElement('div');
-    el.className = 'walker';
-    const flip = document.createElement('div');
-    flip.innerHTML = PENGUIN_SVG;
-    el.appendChild(flip);
-    el.style.width = (30 + Math.random() * 16) + 'px';
-    layer.appendChild(el);
-    const w = {
-      el, flip,
-      x: Math.random() * Math.max(80, stage.clientWidth - 40),
-      y: Math.random() * Math.max(80, stage.clientHeight - 60),
-      tx: 0, ty: 0,
-      speed: 12 + Math.random() * 26,
-      dashUntil: 0, nextDash: performance.now() + 2500 + Math.random() * 9000,
-      waitUntil: 0
-    };
-    pickTarget(w);
-    walkers.push(w);
-  }
+  const pond = document.createElement('div');
+  pond.id = 'pond';
+  layer.appendChild(pond);
+  const el = document.createElement('div');
+  el.className = 'walker';
+  const flip = document.createElement('div');
+  flip.innerHTML = PENGUIN_SVG;
+  el.appendChild(flip);
+  el.style.width = '40px';
+  layer.appendChild(el);
+  const home = pondPoint();
+  walkers.push({
+    el, flip,
+    x: home.x, y: home.y, tx: home.x, ty: home.y,
+    speed: 18,
+    dashUntil: 0, nextDash: performance.now() + 4000,
+    mode: 'stay', until: performance.now() + 5000 + Math.random() * 9000
+  });
   requestAnimationFrame(walkStep);
 }
 function walkStep(t) {
   const dt = Math.min(0.05, walkLast ? (t - walkLast) / 1000 : 0.016);
   walkLast = t;
   for (const w of walkers) {
-    const idle = t < w.waitUntil;
-    w.el.classList.toggle('idle', idle);
-    if (!idle) {
+    const home = pondPoint();
+    if (w.mode === 'stay') {
+      w.el.classList.add('idle'); w.el.classList.remove('dash');
+      if (t > w.until) {
+        w.mode = 'walk';
+        w.speed = 15 + Math.random() * 13;
+        pickTarget(w);
+        w.nextDash = t + 2500 + Math.random() * 8000;
+      }
+    } else {
+      w.el.classList.remove('idle');
       if (t > w.nextDash) {
-        w.dashUntil = t + 600 + Math.random() * 900;
-        w.nextDash = t + 4000 + Math.random() * 10000;
+        w.dashUntil = t + 500 + Math.random() * 800;
+        w.nextDash = t + 5000 + Math.random() * 9000;
       }
       const dashing = t < w.dashUntil;
       w.el.classList.toggle('dash', dashing);
       const sp = w.speed * (dashing ? 4.2 : 1);
       const dx = w.tx - w.x, dy = w.ty - w.y, d = Math.hypot(dx, dy);
       if (d < 6) {
-        if (Math.random() < 0.4) w.waitUntil = t + 800 + Math.random() * 2200;
-        pickTarget(w);
+        if (w.mode === 'walk' && Math.random() < 0.3) pickTarget(w);
+        else if (w.mode === 'walk') { w.mode = 'return'; w.tx = home.x; w.ty = home.y; }
+        else { w.mode = 'stay'; w.until = t + 6000 + Math.random() * 12000; w.x = home.x; w.y = home.y; }
       } else {
         w.x += dx / d * sp * dt;
         w.y += dy / d * sp * dt;
