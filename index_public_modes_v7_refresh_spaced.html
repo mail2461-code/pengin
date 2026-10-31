@@ -68,6 +68,38 @@ dialog{border:1px solid var(--line);border-radius:16px;width:min(620px,92vw);pad
 </style>
 </head>
 <body>
+<style>
+#pwLock{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#f3f4ef;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif}
+#pwLock.hide{display:none}
+#pwLock .box{text-align:center;padding:24px;width:min(320px,86vw)}
+#pwLock .mark{font-size:42px}
+#pwLock .ttl{font-size:24px;font-weight:700;color:#2c2e28;letter-spacing:.06em;margin-top:4px}
+#pwLock .msg{color:#77776d;font-size:13.5px;min-height:20px;margin:10px 0 12px}
+#pwLock input{width:190px;text-align:center;font-size:26px;letter-spacing:.45em;padding:12px 6px 12px 18px;border-radius:14px;border:1px solid #cfd2c4;background:#fff;color:#33352f}
+#pwLock button{display:block;margin:18px auto 0;font:inherit;font-size:16px;font-weight:700;min-height:50px;padding:0 38px;cursor:pointer;border-radius:999px;border:1px solid rgba(140,185,105,.85);color:#2e4a24;background:linear-gradient(160deg,#eef7dd,#b9dc92);box-shadow:0 5px 16px rgba(90,120,60,.25)}
+#pwLock.shake .box{animation:pwshake .4s}
+@keyframes pwshake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+</style>
+<div id="pwLock"><div class="box">
+<div class="mark">🐧</div>
+<div class="ttl">pengin</div>
+<p class="msg" id="pwMsg">パスキーを入れてね</p>
+<input id="pwInput" type="password" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="••••">
+<button id="pwBtn" type="button">ひらく</button>
+</div></div>
+<script>
+(function(){
+  var lock=document.getElementById('pwLock'),inp=document.getElementById('pwInput'),msg=document.getElementById('pwMsg');
+  try{var t=+localStorage.getItem('fuwaUnlockV1')||0;if(Date.now()-t<7*24*3600*1000)lock.classList.add('hide');}catch(e){}
+  function tryU(){
+    if(inp.value==='2461'){try{localStorage.setItem('fuwaUnlockV1',String(Date.now()));}catch(e){}lock.classList.add('hide');}
+    else{msg.textContent='ちがうみたい ( ･᷄-･᷅ ) もういちど';lock.classList.remove('shake');void lock.offsetWidth;lock.classList.add('shake');inp.value='';}
+  }
+  document.getElementById('pwBtn').addEventListener('click',tryU);
+  inp.addEventListener('input',function(){if(inp.value.length===4)tryU();});
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter')tryU();});
+})();
+</script>
 <div id="dragGhost" class="drag-ghost"></div>
 <div id="wiki"><header><div class="bar"><div class="brand">pengin Wiki</div><div class="mode-switch" aria-label="ドラッグ操作モード"><button id="modeMove" class="active" onclick="setDragMode('move')">↪ 移動</button><button id="modeSort" onclick="setDragMode('sort')">↕ 並べ替え</button></div><span id="status" class="status">☁️</span><input id="search" class="search" placeholder="🔍 検索"><button onclick="goRoot()">⌂</button><button onclick="refreshWiki()" title="画面を更新">↻</button><button onclick="openNew()">＋</button></div></header><main id="app"></main></div>
 <dialog id="editor"><div class="dlg"><h2 id="dlgTitle">ページを追加</h2><div class="field"><label>名前</label><input id="fTitle"></div><div class="field"><label>種類</label><select id="fType"><option value="folder">フォルダ</option><option value="page">ページ</option></select></div><div class="field"><label>本文</label><textarea id="fBody" placeholder="このページの内容を書きます"></textarea></div><div class="dlg-actions"><button onclick="editor.close()">キャンセル</button><button onclick="saveItem()">保存</button></div></div></dialog>
