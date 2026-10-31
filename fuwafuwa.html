@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>pengin ふわふわ（試作）</title>
+<title>pengin ふわふわ</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -79,6 +79,29 @@
   #sheet h2 { font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; font-size: 19px; margin: 0 0 10px; }
   #sheet .body { white-space: pre-wrap; font-size: 14.5px; line-height: 1.75; color: #3c3e36; }
   #sheet .close { position: sticky; top: 0; float: right; }
+  #editor { position: fixed; inset: 0; background: rgba(50,52,44,.45); display: none; z-index: 30; }
+  #editor.open { display: block; }
+  #editor .box { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88dvh; overflow: auto; background: #f6f6f2;
+    border-radius: 20px 20px 0 0; padding: 18px 20px calc(20px + env(safe-area-inset-bottom)); }
+  #editor h2 { font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; font-size: 19px; margin: 0 0 12px; }
+  #editor .close { float: right; font: inherit; font-size: 14px; font-weight: 600; min-height: 42px; padding: 8px 18px;
+    border-radius: 999px; border: 1px solid rgba(255,255,255,.65); cursor: pointer;
+    background: linear-gradient(160deg, rgba(255,255,255,.97), rgba(230,230,224,.94)); box-shadow: 0 4px 12px rgba(28,30,26,.22); }
+  #editor label { display: block; font-size: 12.5px; color: #7c7c72; margin: 12px 0 5px; }
+  #editor input[type="text"], #editor textarea {
+    width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; color: #33352f;
+    border: 1px solid #c9c9c0; border-radius: 14px; background: #fff; }
+  #editor textarea { min-height: 150px; line-height: 1.7; resize: vertical; }
+  #editor .kindrow { display: flex; gap: 10px; }
+  #editor .kind { flex: 1; font: inherit; font-size: 15px; font-weight: 600; min-height: 46px; padding: 10px; cursor: pointer;
+    border-radius: 999px; border: 1px solid #c9c9c0; background: #fff; color: #6a6c62; }
+  #editor .kind.on { background: linear-gradient(160deg, #f2f9e6, #cde5ae); border-color: rgba(160,200,120,.8); color: #33512a; }
+  #editor .edrow { display: flex; gap: 10px; margin-top: 18px; }
+  #editor #edSave { flex: 1; font: inherit; font-size: 16px; font-weight: 700; min-height: 52px; cursor: pointer;
+    border-radius: 999px; border: 1px solid rgba(160,200,120,.8); color: #2e4a24;
+    background: linear-gradient(160deg, #eef7dd, #b9dc92); box-shadow: 0 5px 16px rgba(60,90,40,.25); }
+  #editor #edDelete { font: inherit; font-size: 15px; font-weight: 600; min-height: 52px; padding: 0 22px; cursor: pointer;
+    border-radius: 999px; border: 1px solid #d9a49c; color: #8c3a30; background: linear-gradient(160deg, #fdf0ec, #f3d3cb); }
   @media (prefers-reduced-motion: reduce) { .node .card { animation: none; } }
 </style>
 </head>
@@ -86,8 +109,9 @@
 <div id="app">
   <header>
     <span class="ttl">pengin ふわふわ</span>
-    <span class="badge">試作・読み取り専用</span>
+    <span class="badge">ふわふわ版</span>
     <span class="sp"></span>
+    <button id="btnNew" type="button">＋ 新規</button>
     <button id="btnFit" type="button">全体</button>
     <button id="btnReset" type="button">並びをリセット</button>
   </header>
@@ -101,6 +125,23 @@
   <div id="detail"><span class="dt" style="color:#9a9687">カードをタップすると、カメラが寄ります</span></div>
 </div>
 <div id="sheet"><div class="box"><button class="close" id="sheetClose" type="button">閉じる</button><h2 id="sheetTitle"></h2><div class="body" id="sheetBody"></div></div></div>
+<div id="editor"><div class="box">
+  <button class="close" id="edClose" type="button">閉じる</button>
+  <h2 id="edHeading">新規作成</h2>
+  <label for="edTitle">タイトル</label>
+  <input id="edTitle" type="text" autocomplete="off">
+  <label>種類</label>
+  <div class="kindrow">
+    <button type="button" id="kindPage" class="kind on">ページ</button>
+    <button type="button" id="kindFolder" class="kind">フォルダ</button>
+  </div>
+  <label for="edBody">本文</label>
+  <textarea id="edBody"></textarea>
+  <div class="edrow">
+    <button type="button" id="edSave">保存する</button>
+    <button type="button" id="edDelete" class="danger">削除</button>
+  </div>
+</div></div>
 
 <script>
 const SUPABASE_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
@@ -116,6 +157,8 @@ let view = { x: 0, y: 0, s: 0.5 };
 let selectedId = null;
 let savedPos = {};
 try { savedPos = JSON.parse(localStorage.getItem(POS_KEY) || '{}'); } catch (e) { savedPos = {}; }
+let layoutRowId = null, layoutTimer = null;
+const KEPOS_ID = 'a757f322-17fc-494a-9d77-cbe72fc06d26';
 
 const stage = document.getElementById('stage');
 const world = document.getElementById('world');
@@ -125,7 +168,7 @@ const crumbsEl = document.getElementById('crumbs');
 const detailEl = document.getElementById('detail');
 
 function childrenOf(pid) {
-  return rows.filter(r => (pid === 'root' ? r.parent_id === null : r.parent_id === pid))
+  return rows.filter(r => r.id !== layoutRowId && (pid === 'root' ? r.parent_id === null : r.parent_id === pid))
              .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 }
 function folderName(id) { const r = byId.get(id); return r ? r.title : ''; }
@@ -135,7 +178,12 @@ async function load() {
   if (error) { statusEl.textContent = '読み込みに失敗しました：' + error.message; return; }
   rows = data || [];
   byId = new Map(rows.map(r => [r.id, r]));
-  statusEl.textContent = '全 ' + rows.length + ' ページ（並びはこの端末にだけ保存されます）';
+  const lr = rows.find(r => r.title === 'fuwa-layout' && r.kind === 'page');
+  if (lr) {
+    layoutRowId = lr.id;
+    try { const p = JSON.parse(lr.content || '{}'); if (p && typeof p === 'object') savedPos = p; } catch (e) {}
+  }
+  statusEl.textContent = '全 ' + rows.length + ' ページ（並びは全端末で同期されます）';
   buildLevel('root');
   fitView(false);
 }
@@ -206,6 +254,10 @@ function renderDetail() {
   b.textContent = n.kind === 'folder' ? '開く ›' : '本文を見る';
   b.addEventListener('click', () => { if (n.kind === 'folder') { buildLevel(n.id); fitView(true); } else openSheet(n); });
   detailEl.appendChild(b);
+  const e = document.createElement('button'); e.type = 'button';
+  e.textContent = '編集';
+  e.addEventListener('click', () => openEditor(n));
+  detailEl.appendChild(e);
 }
 
 function renderSeams() {
@@ -283,6 +335,20 @@ function savePos() {
   nodes.forEach(n => { m[n.id] = { x: Math.round(n.x), y: Math.round(n.y) }; });
   savedPos[currentParent] = m;
   try { localStorage.setItem(POS_KEY, JSON.stringify(savedPos)); } catch (e) {}
+  clearTimeout(layoutTimer);
+  layoutTimer = setTimeout(saveLayoutRemote, 900);
+}
+async function saveLayoutRemote() {
+  const content = JSON.stringify(savedPos);
+  if (layoutRowId) {
+    const { error } = await sb.from('wiki_pages').update({ content }).eq('id', layoutRowId);
+    if (!error) { const r = byId.get(layoutRowId); if (r) r.content = content; }
+  } else {
+    const id = crypto.randomUUID();
+    const row = { id, parent_id: KEPOS_ID, title: 'fuwa-layout', kind: 'page', content, sort_order: 9999, owner_id: null };
+    const { error } = await sb.from('wiki_pages').insert(row);
+    if (!error) { layoutRowId = id; rows.push({ ...row }); byId.set(id, { ...row }); }
+  }
 }
 
 stage.addEventListener('pointerdown', (ev) => {
@@ -400,6 +466,79 @@ document.getElementById('btnReset').addEventListener('click', () => {
   buildLevel(currentParent); fitView(true);
 });
 window.addEventListener('resize', () => fitView(false));
+
+// ===== 編集（新規・編集・削除） =====
+const editorEl = document.getElementById('editor');
+const edTitle = document.getElementById('edTitle'), edBody = document.getElementById('edBody');
+const edHeading = document.getElementById('edHeading'), edDelete = document.getElementById('edDelete');
+let editingId = null, edKind = 'page';
+function setKind(k) {
+  edKind = k;
+  document.getElementById('kindPage').classList.toggle('on', k === 'page');
+  document.getElementById('kindFolder').classList.toggle('on', k === 'folder');
+}
+document.getElementById('kindPage').addEventListener('click', () => setKind('page'));
+document.getElementById('kindFolder').addEventListener('click', () => setKind('folder'));
+function openEditor(n) {
+  editingId = n ? n.id : null;
+  setKind(n ? n.kind : 'page');
+  edHeading.textContent = n ? '編集' : '新規作成（' + (currentParent === 'root' ? 'トップ' : folderName(currentParent)) + 'の中）';
+  edTitle.value = n ? n.title : '';
+  const row = n ? byId.get(n.id) : null;
+  edBody.value = row ? (row.content || '') : '';
+  edDelete.style.display = n ? '' : 'none';
+  editorEl.classList.add('open');
+}
+function closeEditor() { editorEl.classList.remove('open'); }
+document.getElementById('edClose').addEventListener('click', closeEditor);
+editorEl.addEventListener('click', (ev) => { if (ev.target === editorEl) closeEditor(); });
+document.getElementById('btnNew').addEventListener('click', () => openEditor(null));
+
+document.getElementById('edSave').addEventListener('click', async () => {
+  const title = edTitle.value.trim();
+  if (!title) { alert('タイトルを入れてください'); return; }
+  const body = edBody.value;
+  if (editingId) {
+    const { error } = await sb.from('wiki_pages').update({ title, kind: edKind, content: body }).eq('id', editingId);
+    if (error) { alert(error.message); return; }
+    const r = byId.get(editingId);
+    if (r) Object.assign(r, { title, kind: edKind, content: body });
+    const keep = editingId;
+    closeEditor(); buildLevel(currentParent); select(keep);
+    statusEl.textContent = '☁️ 保存しました';
+  } else {
+    const id = crypto.randomUUID();
+    const parent_id = currentParent === 'root' ? null : currentParent;
+    const order = childrenOf(currentParent).length;
+    const row = { id, parent_id, title, kind: edKind, content: body, sort_order: order, owner_id: null };
+    const { error } = await sb.from('wiki_pages').insert(row);
+    if (error) { alert(error.message); return; }
+    rows.push({ ...row }); byId.set(id, { ...row });
+    closeEditor(); buildLevel(currentParent);
+    const n = nodes.find(x => x.id === id);
+    if (n) { select(id); centerOn(n); }
+    statusEl.textContent = '☁️ 作成しました';
+  }
+});
+
+edDelete.addEventListener('click', async () => {
+  if (!editingId) return;
+  const r = byId.get(editingId);
+  if (!r) return;
+  if (!confirm('「' + r.title + '」を削除しますか？（中のページも削除されます）')) return;
+  const ids = new Set([editingId]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const x of rows) if (ids.has(x.parent_id) && !ids.has(x.id)) { ids.add(x.id); changed = true; }
+  }
+  const { error } = await sb.from('wiki_pages').delete().in('id', [...ids]);
+  if (error) { alert(error.message); return; }
+  rows = rows.filter(x => !ids.has(x.id));
+  ids.forEach(id => byId.delete(id));
+  closeEditor(); buildLevel(currentParent);
+  statusEl.textContent = '☁️ 削除しました';
+});
 
 load();
 </script>
