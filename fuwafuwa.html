@@ -109,6 +109,8 @@
   #linkSheet .lsrow .who { font-weight: 600; font-size: 15px; margin-bottom: 5px; color: #3c3e36; }
   #linkSheet .lsrow input { width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; color: #33352f;
     border: 1px solid #c9c9c0; border-radius: 14px; background: #fff; }
+  #linkSheet .lscut { margin-top: 6px; font: inherit; font-size: 13.5px; font-weight: 600; min-height: 38px; padding: 6px 16px;
+    cursor: pointer; border-radius: 999px; border: 1px solid #d9a49c; color: #8c3a30; background: linear-gradient(160deg, #fdf0ec, #f3d3cb); }
   #linkSheet #lsSave { width: 100%; font: inherit; font-size: 16px; font-weight: 700; min-height: 52px; margin-top: 8px; cursor: pointer;
     border-radius: 999px; border: 1px solid rgba(160,200,120,.8); color: #2e4a24;
     background: linear-gradient(160deg, #eef7dd, #b9dc92); box-shadow: 0 5px 16px rgba(60,90,40,.25); }
@@ -445,6 +447,12 @@ function renderDetail() {
     renderDetail();
   });
   detailEl.appendChild(lb);
+  if (pairPartner(n)) {
+    const db = document.createElement('button'); db.type = 'button';
+    db.textContent = '解散';
+    db.addEventListener('click', () => { dissolveNode(n); renderDetail(); });
+    detailEl.appendChild(db);
+  }
   if (lc) {
     const mb = document.createElement('button'); mb.type = 'button';
     mb.textContent = 'リンクメモ';
@@ -462,6 +470,24 @@ function pairPartner(n) {
     if (Math.abs(d - (n.r + o.r)) <= 22) return o;
   }
   return null;
+}
+function dissolveNode(n) {
+  const partners = nodes.filter(o => o !== n && Math.abs(Math.hypot(n.x - o.x, n.y - o.y) - (n.r + o.r)) <= 22);
+  if (!partners.length) return;
+  linkAsk = null;
+  const cx = partners.reduce((s, o) => s + o.x, 0) / partners.length;
+  const cy = partners.reduce((s, o) => s + o.y, 0) / partners.length;
+  let dx = n.x - cx, dy = n.y - cy;
+  const d = Math.hypot(dx, dy);
+  if (d < 1) { dx = 1; dy = 0; } else { dx /= d; dy /= d; }
+  for (let i = 0; i < 14; i++) {
+    n.x = Math.min(WORLD_W - n.r, Math.max(n.r, n.x + dx * 34));
+    n.y = Math.min(WORLD_H - n.r, Math.max(n.r, n.y + dy * 34));
+    const still = partners.some(o => Math.hypot(n.x - o.x, n.y - o.y) < n.r + o.r + 26);
+    if (!still) break;
+  }
+  place(n); savePos(); renderSeams();
+  statusEl.textContent = '解散しました';
 }
 function pairPath(wa, wb, ra, rb) {
   const Ra = ra + 8, Rb = rb + 8;
@@ -712,7 +738,8 @@ function endPointer(ev) {
     }
     else if (linkMode && selectedId && selectedId !== n.id) { toggleLink(selectedId, n.id); linkMode = false; renderDetail(); }
     else if (linkMode && selectedId === n.id) { linkMode = false; renderDetail(); }
-    else { select(n.id); centerOn(n); }
+    else if (selectedId === n.id) { linkAsk = null; if (n.kind === 'folder') { buildLevel(n.id); fitView(true); } else openSheet(n); }
+    else { linkAsk = null; select(n.id); centerOn(n); }
     dragNode = null; snapTarget = null; dragGroup = []; dragGroupIds = new Set(); dragStartPartners = new Set();
     return;
   }
@@ -906,7 +933,20 @@ function openLinkSheet(n) {
     inp.type = 'text'; inp.value = L.label || '';
     inp.placeholder = '関係性メモ（例：同じ△の話）';
     inp.dataset.linkKey = L.a + '|' + L.b;
-    div.appendChild(who); div.appendChild(inp); rowsEl.appendChild(div);
+    div.appendChild(who); div.appendChild(inp);
+    const cut = document.createElement('button');
+    cut.type = 'button'; cut.className = 'lscut'; cut.textContent = 'リンクを切る';
+    cut.dataset.linkKey = L.a + '|' + L.b;
+    cut.addEventListener('click', () => {
+      if (!confirm('このリンクを切りますか？')) return;
+      const [a, b] = cut.dataset.linkKey.split('|');
+      settings.links = settings.links.filter(l => !(l.a === a && l.b === b));
+      scheduleSettingsSave(); renderSeams(); renderDetail();
+      div.remove();
+      if (!rowsEl.querySelector('.lsrow')) rowsEl.textContent = 'リンクがありません';
+    });
+    div.appendChild(cut);
+    rowsEl.appendChild(div);
   });
   if (!rowsEl.children.length) rowsEl.textContent = 'リンクがありません';
   lsEl.classList.add('open');
