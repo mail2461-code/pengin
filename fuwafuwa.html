@@ -108,20 +108,16 @@
     padding: 11px 14px; background: none; border: none; border-bottom: 1px solid #e6e6de; color: #33352f; cursor: pointer; }
   #searchResults .sres:last-child { border-bottom: none; }
   #searchResults .snone { padding: 11px 14px; font-size: 14px; color: #8b887a; }
-  #walkers { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 1; }
-  #pond { position: absolute; right: 6px; bottom: 4px; width: 224px; height: 104px; border-radius: 50%;
-    background: radial-gradient(ellipse at 50% 45%, rgba(205,235,250,.9) 0%, rgba(150,205,240,.55) 52%, rgba(150,205,240,0) 72%);
-    pointer-events: none; }
-  #pond::after { content: ''; position: absolute; inset: 18px 30px; border-radius: 50%;
-    border: 2px solid rgba(255,255,255,.5); animation: ripple 3.2s ease-out infinite; }
-  @keyframes ripple { from { transform: scale(.55); opacity: .8; } to { transform: scale(1.15); opacity: 0; } }
+  #penguin { position: absolute; left: 0; top: 0; z-index: 1; pointer-events: none; will-change: transform; }
+  #penguin svg { width: 100%; height: auto; display: block; animation: waddle .34s ease-in-out infinite alternate;
+    filter: drop-shadow(0 3px 3px rgba(20,22,18,.35)); }
+  #penguin.idle svg { animation-play-state: paused; }
+  #penguin.dash svg { animation-duration: .13s; }
+  #guides path.pond { fill: rgba(165,210,242,.5); stroke: none; }
+  #guides path.pondring { fill: none; stroke: rgba(255,255,255,.55); stroke-width: 2.5; animation: pondpulse 3.2s ease-in-out infinite; }
+  @keyframes pondpulse { 0%, 100% { opacity: .3; } 50% { opacity: .9; } }
   .node.dropcand .card { outline: 3px dashed rgba(255,255,255,.95); outline-offset: 4px; }
   #crumbs button.dropcand { filter: brightness(1.1); transform: scale(1.07); }
-  .walker { position: absolute; left: 0; top: 0; pointer-events: none; will-change: transform; }
-  .walker svg { width: 100%; height: auto; display: block; animation: waddle .34s ease-in-out infinite alternate;
-    filter: drop-shadow(0 3px 3px rgba(20,22,18,.35)); }
-  .walker.idle svg { animation-play-state: paused; }
-  .walker.dash svg { animation-duration: .13s; }
   @keyframes waddle { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
   #fishBar { display: none; padding: 0 14px 8px; align-items: center; gap: 10px; color: #f0f0e6; font-size: 13px; }
   #fishBar.open { display: flex; }
@@ -254,10 +250,10 @@
   <div id="crumbs"></div>
   <div id="status">読み込み中…</div>
   <div id="stage">
-    <div id="walkers"></div>
     <div id="world">
       <svg id="guides"><g id="gWarp"></g></svg>
       <svg id="seams"><defs><filter id="soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="7"/></filter></defs></svg>
+      <div id="penguin"><div id="penguinFlip"><svg viewBox="0 0 100 112" xmlns="http://www.w3.org/2000/svg"><ellipse cx="38" cy="104" rx="11" ry="4.5" fill="#f2a541"/><ellipse cx="62" cy="104" rx="11" ry="4.5" fill="#f2a541"/><ellipse cx="50" cy="58" rx="31" ry="44" fill="#ffffff" stroke="#39404d" stroke-width="3"/><ellipse cx="50" cy="70" rx="19" ry="26" fill="#eef1f4"/><path d="M22 40 Q24 14 50 14 Q76 14 78 40 Q64 30 50 30 Q36 30 22 40 Z" fill="#39404d"/><ellipse cx="16" cy="62" rx="6" ry="17" fill="#39404d" transform="rotate(14 16 62)"/><ellipse cx="84" cy="62" rx="6" ry="17" fill="#39404d" transform="rotate(-14 84 62)"/><circle cx="41" cy="42" r="3.4" fill="#23272f"/><circle cx="59" cy="42" r="3.4" fill="#23272f"/><path d="M44 50 L56 50 L50 58 Z" fill="#f2a541"/></svg></div></div>
     </div>
   </div>
   <div id="detail"><span class="dt" style="color:#9a9687">カードをタップすると、カメラが寄ります</span></div>
@@ -314,8 +310,9 @@ function normalizeSettings(p) {
 }
 let settings = { pos: {}, color: {}, links: [] };
 try { settings = normalizeSettings(JSON.parse(localStorage.getItem(POS_KEY) || '{}')); } catch (e) {}
-let layoutRowId = null, layoutTimer = null;
+let layoutRowId = null, layoutTimer = null, settingsDirty = false, appReady = false;
 function scheduleSettingsSave() {
+  settingsDirty = true;
   try { localStorage.setItem(POS_KEY, JSON.stringify(settings)); } catch (e) {}
   clearTimeout(layoutTimer);
   layoutTimer = setTimeout(saveLayoutRemote, 900);
@@ -349,7 +346,8 @@ async function load() {
   buildLevel('root');
   openView();
   renderGuides();
-  spawnWalkers();
+  spawnPenguin();
+  appReady = true;
 }
 
 function buildLevel(pid) {
@@ -423,13 +421,26 @@ function place(n) {
   n.el.style.left = w.x + 'px'; n.el.style.top = w.y + 'px';
   n.el.style.transform = 'translate(-50%,-50%) scale(' + w.k.toFixed(3) + ')';
 }
-function layoutAll() { nodes.forEach(place); renderSeams(); renderGuides(); }
+function layoutAll() { nodes.forEach(place); renderSeams(); renderGuides(); placePenguin(); }
 function renderGuides() {
   const g = document.getElementById('gWarp');
   if (!g) return;
   g.innerHTML = '';
   const NS = 'http://www.w3.org/2000/svg';
   const CX = WORLD_W / 2, CY = WORLD_H / 2;
+  const pondPath = (rx, ry, cls) => {
+    const pts = [];
+    for (let i = 0; i <= 48; i++) {
+      const a = i / 48 * Math.PI * 2;
+      pts.push(warpPoint(1520 + rx * Math.cos(a), 1110 + ry * Math.sin(a)));
+    }
+    const p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', 'M ' + pts.map(q => q.x.toFixed(1) + ' ' + q.y.toFixed(1)).join(' L ') + ' Z');
+    p.setAttribute('class', cls);
+    g.appendChild(p);
+  };
+  pondPath(190, 85, 'pond');
+  pondPath(120, 52, 'pondring');
   const mkPath = (pts, cls) => {
     const p = document.createElementNS(NS, 'path');
     p.setAttribute('d', 'M ' + pts.map(q => q.x.toFixed(1) + ' ' + q.y.toFixed(1)).join(' L '));
@@ -704,15 +715,16 @@ function savePos() {
   scheduleSettingsSave();
 }
 async function saveLayoutRemote() {
+  layoutTimer = null;
   const content = JSON.stringify(settings);
   if (layoutRowId) {
     const { error } = await sb.from('wiki_pages').update({ content }).eq('id', layoutRowId);
-    if (!error) { const r = byId.get(layoutRowId); if (r) r.content = content; }
+    if (!error) { const r = byId.get(layoutRowId); if (r) r.content = content; settingsDirty = false; }
   } else {
     const id = crypto.randomUUID();
     const row = { id, parent_id: KEPOS_ID, title: 'fuwa-layout', kind: 'page', content, sort_order: 9999, owner_id: null };
     const { error } = await sb.from('wiki_pages').insert(row);
-    if (!error) { layoutRowId = id; rows.push({ ...row }); byId.set(id, { ...row }); }
+    if (!error) { layoutRowId = id; rows.push({ ...row }); byId.set(id, { ...row }); settingsDirty = false; }
   }
 }
 
@@ -922,21 +934,33 @@ async function moveNodeTo(n, targetPid) {
   buildLevel(currentParent);
   statusEl.textContent = '「' + n.title + '」を ' + targetName + ' に移動しました' + (settings.links.length !== beforeLinks ? '（リンクは切りました）' : '');
 }
-async function reloadData() {
-  statusEl.textContent = '更新中…';
+async function reloadData(quiet) {
+  if (!quiet) statusEl.textContent = '更新中…';
   const { data, error } = await sb.from('wiki_pages').select('*').order('sort_order', { ascending: true });
-  if (error) { statusEl.textContent = '更新に失敗しました：' + error.message; return; }
+  if (error) { if (!quiet) statusEl.textContent = '更新に失敗しました：' + error.message; return; }
   rows = data || [];
   byId = new Map(rows.map(r => [r.id, r]));
   const lr = rows.find(r => r.title === 'fuwa-layout' && r.kind === 'page');
   if (lr) { layoutRowId = lr.id; try { settings = normalizeSettings(JSON.parse(lr.content || '{}')); } catch (e) {} }
   if (currentParent !== 'root' && !byId.has(currentParent)) currentParent = 'root';
   linkMode = false; linkAsk = null;
+  const keepView = quiet ? { x: view.x, y: view.y, s: view.s } : null;
+  const keepSel = quiet ? selectedId : null;
   buildLevel(currentParent);
+  if (keepView) { view.x = keepView.x; view.y = keepView.y; view.s = keepView.s; applyView(); layoutAll(); }
+  if (keepSel && nodes.some(n => n.id === keepSel)) select(keepSel);
   renderGuides();
-  statusEl.textContent = '更新しました（全 ' + rows.length + ' ページ）';
+  if (!quiet) statusEl.textContent = '更新しました（全 ' + rows.length + ' ページ）';
 }
-document.getElementById('btnReload').addEventListener('click', reloadData);
+document.getElementById('btnReload').addEventListener('click', () => reloadData(false));
+function quietReload() {
+  if (!appReady || settingsDirty || dragNode) return;
+  if (sheet.classList.contains('open') || editorEl.classList.contains('open') || lsEl.classList.contains('open')) return;
+  if (lockEl && !lockEl.classList.contains('hide')) return;
+  reloadData(true);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) quietReload(); });
+window.addEventListener('pageshow', () => quietReload());
 window.addEventListener('resize', () => fitView(false));
 
 // ===== パスキー =====
@@ -1141,91 +1165,63 @@ sIn.addEventListener('input', () => {
   }
 });
 
-// ===== お散歩ペンギン =====
-const PENGUIN_SVG =
-  '<svg viewBox="0 0 100 112" xmlns="http://www.w3.org/2000/svg">' +
-  '<ellipse cx="38" cy="104" rx="11" ry="4.5" fill="#f2a541"/>' +
-  '<ellipse cx="62" cy="104" rx="11" ry="4.5" fill="#f2a541"/>' +
-  '<ellipse cx="50" cy="58" rx="31" ry="44" fill="#ffffff" stroke="#39404d" stroke-width="3"/>' +
-  '<ellipse cx="50" cy="70" rx="19" ry="26" fill="#eef1f4"/>' +
-  '<path d="M22 40 Q24 14 50 14 Q76 14 78 40 Q64 30 50 30 Q36 30 22 40 Z" fill="#39404d"/>' +
-  '<ellipse cx="16" cy="62" rx="6" ry="17" fill="#39404d" transform="rotate(14 16 62)"/>' +
-  '<ellipse cx="84" cy="62" rx="6" ry="17" fill="#39404d" transform="rotate(-14 84 62)"/>' +
-  '<circle cx="41" cy="42" r="3.4" fill="#23272f"/>' +
-  '<circle cx="59" cy="42" r="3.4" fill="#23272f"/>' +
-  '<path d="M44 50 L56 50 L50 58 Z" fill="#f2a541"/>' +
-  '</svg>';
-let walkers = [], walkStarted = false, walkLast = 0;
-function pondPoint() {
-  return { x: Math.max(60, stage.clientWidth - 118), y: Math.max(60, stage.clientHeight - 64) };
+// ===== お散歩ペンギン（ワールド座標：魚眼で一緒に歪む） =====
+const penguinEl = document.getElementById('penguin');
+const penguinFlip = document.getElementById('penguinFlip');
+const POND = { x: 1520, y: 1110 };
+let pg = null, pgLast = 0;
+function placePenguin() {
+  if (!pg) return;
+  const d = warpPoint(pg.x, pg.y);
+  penguinEl.style.width = (46 * d.k) + 'px';
+  penguinEl.style.transform = 'translate(' + (d.x - 23 * d.k).toFixed(1) + 'px,' + (d.y - 50 * d.k).toFixed(1) + 'px)';
 }
-function pickTarget(w) {
-  w.tx = 16 + Math.random() * Math.max(60, stage.clientWidth - 32);
-  w.ty = 16 + Math.random() * Math.max(60, stage.clientHeight - 60);
+function pgTarget() {
+  pg.tx = 70 + Math.random() * (WORLD_W - 140);
+  pg.ty = 70 + Math.random() * (WORLD_H - 140);
 }
-function spawnWalkers() {
-  if (walkStarted) return;
-  walkStarted = true;
-  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const layer = document.getElementById('walkers');
-  const pond = document.createElement('div');
-  pond.id = 'pond';
-  layer.appendChild(pond);
-  const el = document.createElement('div');
-  el.className = 'walker';
-  const flip = document.createElement('div');
-  flip.innerHTML = PENGUIN_SVG;
-  el.appendChild(flip);
-  el.style.width = '40px';
-  layer.appendChild(el);
-  const home = pondPoint();
-  walkers.push({
-    el, flip,
-    x: home.x, y: home.y, tx: home.x, ty: home.y,
-    speed: 18,
+function spawnPenguin() {
+  pg = { x: POND.x, y: POND.y, tx: POND.x, ty: POND.y, speed: 42,
     dashUntil: 0, nextDash: performance.now() + 4000,
-    mode: 'stay', until: performance.now() + 5000 + Math.random() * 9000
-  });
-  requestAnimationFrame(walkStep);
+    mode: 'stay', until: performance.now() + 5000 + Math.random() * 9000 };
+  placePenguin();
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  requestAnimationFrame(pgStep);
 }
-function walkStep(t) {
-  const dt = Math.min(0.05, walkLast ? (t - walkLast) / 1000 : 0.016);
-  walkLast = t;
-  for (const w of walkers) {
-    const home = pondPoint();
-    if (w.mode === 'stay') {
-      w.el.classList.add('idle'); w.el.classList.remove('dash');
-      if (t > w.until) {
-        w.mode = 'walk';
-        w.speed = 15 + Math.random() * 13;
-        pickTarget(w);
-        w.nextDash = t + 2500 + Math.random() * 8000;
-      }
-    } else {
-      w.el.classList.remove('idle');
-      if (t > w.nextDash) {
-        w.dashUntil = t + 500 + Math.random() * 800;
-        w.nextDash = t + 5000 + Math.random() * 9000;
-      }
-      const dashing = t < w.dashUntil;
-      w.el.classList.toggle('dash', dashing);
-      const sp = w.speed * (dashing ? 4.2 : 1);
-      const dx = w.tx - w.x, dy = w.ty - w.y, d = Math.hypot(dx, dy);
-      if (d < 6) {
-        if (w.mode === 'walk' && Math.random() < 0.3) pickTarget(w);
-        else if (w.mode === 'walk') { w.mode = 'return'; w.tx = home.x; w.ty = home.y; }
-        else { w.mode = 'stay'; w.until = t + 6000 + Math.random() * 12000; w.x = home.x; w.y = home.y; }
-      } else {
-        w.x += dx / d * sp * dt;
-        w.y += dy / d * sp * dt;
-        w.flip.style.transform = dx < 0 ? 'scaleX(-1)' : '';
-      }
+function pgStep(t) {
+  const dt = Math.min(0.05, pgLast ? (t - pgLast) / 1000 : 0.016);
+  pgLast = t;
+  if (pg.mode === 'stay') {
+    penguinEl.classList.add('idle'); penguinEl.classList.remove('dash');
+    if (t > pg.until) {
+      pg.mode = 'walk';
+      pg.speed = 34 + Math.random() * 24;
+      pgTarget();
+      pg.nextDash = t + 2500 + Math.random() * 8000;
     }
-    w.el.style.transform = 'translate(' + w.x.toFixed(1) + 'px,' + w.y.toFixed(1) + 'px)';
+  } else {
+    penguinEl.classList.remove('idle');
+    if (t > pg.nextDash) {
+      pg.dashUntil = t + 500 + Math.random() * 800;
+      pg.nextDash = t + 5000 + Math.random() * 9000;
+    }
+    const dashing = t < pg.dashUntil;
+    penguinEl.classList.toggle('dash', dashing);
+    const sp = pg.speed * (dashing ? 4.2 : 1);
+    const dx = pg.tx - pg.x, dy = pg.ty - pg.y, d = Math.hypot(dx, dy);
+    if (d < 8) {
+      if (pg.mode === 'walk' && Math.random() < 0.3) pgTarget();
+      else if (pg.mode === 'walk') { pg.mode = 'return'; pg.tx = POND.x; pg.ty = POND.y; }
+      else { pg.mode = 'stay'; pg.until = t + 6000 + Math.random() * 12000; pg.x = POND.x; pg.y = POND.y; }
+    } else {
+      pg.x += dx / d * sp * dt;
+      pg.y += dy / d * sp * dt;
+      penguinFlip.style.transform = dx < 0 ? 'scaleX(-1)' : '';
+    }
   }
-  requestAnimationFrame(walkStep);
+  placePenguin();
+  requestAnimationFrame(pgStep);
 }
-
 load();
 </script>
 </body>
