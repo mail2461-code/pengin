@@ -8,7 +8,7 @@
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; padding: 0; height: 100%; }
-  body { font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; background: #f4f1e8; color: #33352f; overflow: hidden; }
+  body { font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; background: #c6c6c0; color: #33352f; overflow: hidden; }
   #app { display: flex; flex-direction: column; height: 100dvh; }
   header { padding: 10px 14px 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   header .ttl { font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; font-size: 19px; letter-spacing: .04em; }
@@ -24,9 +24,9 @@
   #status { padding: 0 14px 6px; font-size: 12px; color: #9a9687; min-height: 16px; }
   #stage { position: relative; flex: 1; overflow: hidden; touch-action: none;
     background:
-      radial-gradient(ellipse 70% 50% at 25% 20%, #fdfbf3 0%, rgba(253,251,243,0) 60%),
-      radial-gradient(ellipse 60% 45% at 80% 85%, #eef3e2 0%, rgba(238,243,226,0) 65%),
-      #f4f1e8; }
+      radial-gradient(ellipse 70% 50% at 25% 20%, #dcdcd6 0%, rgba(220,220,214,0) 60%),
+      radial-gradient(ellipse 60% 45% at 80% 85%, #cfd2c6 0%, rgba(207,210,198,0) 65%),
+      #c6c6c0; }
   #world { position: absolute; left: 0; top: 0; width: 1700px; height: 1250px; transform-origin: 0 0; }
   #seams { position: absolute; left: 0; top: 0; width: 1700px; height: 1250px; pointer-events: none; }
   .node { position: absolute; transform: translate(-50%, -50%); cursor: grab; touch-action: none; z-index: 2; }
@@ -39,13 +39,13 @@
     animation: fuwa ease-in-out infinite alternate; user-select: none; -webkit-user-select: none;
   }
   .node.folder .card { background: linear-gradient(145deg, #d9efc6, #b7dd97); color: #39512a; font-weight: 600; }
-  .node.page .card { background: linear-gradient(145deg, #ffffff, #e9e7df); color: #4a4c44; }
+  .node.page .card { background: linear-gradient(145deg, #f7f7f3, #e0e0da); color: #4a4c44; }
   .node.selected .card { outline: 3px solid #fff; box-shadow: 0 0 0 5px rgba(140,175,110,.45), 0 14px 30px rgba(90,95,70,.22); }
   .node.snapcand .card { box-shadow: 0 0 0 6px rgba(255,255,255,.75), 0 14px 30px rgba(90,95,70,.25); }
   @keyframes fuwa { from { transform: translateY(-5px) rotate(-1.1deg); } to { transform: translateY(6px) rotate(1.1deg); } }
   .node.dragging .card, .node.selected .card { animation-play-state: paused; }
   #detail { min-height: 54px; padding: 8px 14px calc(8px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 10px;
-    background: rgba(255,253,246,.92); border-top: 1px solid #e3ddca; backdrop-filter: blur(6px); }
+    background: rgba(238,238,234,.94); border-top: 1px solid #b9b9b2; backdrop-filter: blur(6px); }
   #detail .dt { flex: 1; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #detail .dk { font-size: 11px; color: #8b887a; margin-right: 6px; }
   #sheet { position: fixed; inset: 0; background: rgba(50,52,44,.45); display: none; z-index: 20; }
@@ -120,7 +120,7 @@ function buildLevel(pid) {
   currentParent = pid;
   selectedId = null;
   world.querySelectorAll('.node').forEach(el => el.remove());
-  seams.querySelectorAll('line').forEach(el => el.remove());
+  seams.querySelectorAll('line, path').forEach(el => el.remove());
   const kids = childrenOf(pid);
   const posMap = savedPos[pid] || {};
   nodes = kids.map((r, i) => {
@@ -185,11 +185,25 @@ function renderDetail() {
 }
 
 function renderSeams() {
-  seams.querySelectorAll('line').forEach(el => el.remove());
+  seams.querySelectorAll('line, path').forEach(el => el.remove());
   for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
     const a = nodes[i], b = nodes[j];
     const d = Math.hypot(a.x - b.x, a.y - b.y);
     if (Math.abs(d - (a.r + b.r)) <= 16) {
+      // ペアの外枠：2つを包む淡い緑のカプセル型の縁
+      const R = Math.max(a.r, b.r) + 10;
+      const ux = (b.x - a.x) / d, uy = (b.y - a.y) / d, px = -uy * R, py = ux * R;
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d',
+        'M ' + (a.x + px) + ' ' + (a.y + py) +
+        ' L ' + (b.x + px) + ' ' + (b.y + py) +
+        ' A ' + R + ' ' + R + ' 0 0 1 ' + (b.x - px) + ' ' + (b.y - py) +
+        ' L ' + (a.x - px) + ' ' + (a.y - py) +
+        ' A ' + R + ' ' + R + ' 0 0 1 ' + (a.x + px) + ' ' + (a.y + py) + ' Z');
+      path.setAttribute('fill', 'rgba(169,196,141,0.30)');
+      path.setAttribute('stroke', 'rgba(110,150,85,0.55)');
+      path.setAttribute('stroke-width', '2.5');
+      seams.appendChild(path);
       const mk = (w, op, blur) => {
         const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         ln.setAttribute('x1', a.x); ln.setAttribute('y1', a.y); ln.setAttribute('x2', b.x); ln.setAttribute('y2', b.y);
@@ -232,7 +246,7 @@ function fitView(anim) {
 }
 function centerOn(n) {
   const r = stage.getBoundingClientRect();
-  const s = Math.max(view.s, 0.92);
+  const s = Math.max(view.s, 1.45);
   animateView({ s, x: r.width / 2 - n.x * s, y: r.height / 2 - n.y * s }, 430);
 }
 function select(id) {
