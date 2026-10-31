@@ -52,17 +52,57 @@
     padding: 13px; font-size: 14px; line-height: 1.35; word-break: break-all;
     border: 1.5px solid rgba(255,255,255,.85);
     background:
-      radial-gradient(ellipse 46% 26% at 34% 18%, rgba(255,255,255,.95), rgba(255,255,255,0) 70%),
+      radial-gradient(ellipse 46% 26% at 34% 18%, rgba(255,255,255,.97), rgba(255,255,255,0) 70%),
+      radial-gradient(ellipse 30% 16% at 72% 84%, rgba(255,255,255,.55), rgba(255,255,255,0) 70%),
+      conic-gradient(from 210deg at 50% 50%, rgba(255,170,215,.13), rgba(170,215,255,.13), rgba(215,255,190,.13), rgba(255,240,180,.10), rgba(255,170,215,.13)),
       radial-gradient(circle at 32% 26%, rgba(255,255,255,.98) 0%, rgba(255,255,255,.55) 34%, rgba(214,232,255,.30) 62%, rgba(255,214,238,.32) 84%, rgba(190,220,255,.38) 100%);
-    box-shadow: inset 0 0 18px rgba(255,255,255,.35), inset -6px -8px 16px rgba(160,190,255,.28), 0 12px 26px rgba(28,30,26,.38);
+    box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.35), inset 0 0 18px rgba(255,255,255,.35), inset -6px -8px 16px rgba(160,190,255,.28), 0 12px 26px rgba(28,30,26,.38);
     animation: fuwa ease-in-out infinite alternate; user-select: none; -webkit-user-select: none;
   }
   .node.folder .card {
     background:
-      radial-gradient(ellipse 46% 26% at 34% 18%, rgba(255,255,255,.95), rgba(255,255,255,0) 70%),
+      radial-gradient(ellipse 46% 26% at 34% 18%, rgba(255,255,255,.97), rgba(255,255,255,0) 70%),
+      radial-gradient(ellipse 30% 16% at 72% 84%, rgba(255,255,255,.5), rgba(255,255,255,0) 70%),
+      conic-gradient(from 210deg at 50% 50%, rgba(255,170,215,.10), rgba(170,215,255,.10), rgba(215,255,190,.12), rgba(255,240,180,.08), rgba(255,170,215,.10)),
       radial-gradient(circle at 32% 26%, rgba(255,255,255,.96) 0%, rgba(228,247,207,.68) 38%, rgba(178,224,145,.48) 72%, rgba(148,203,118,.55) 100%);
     color: #33512a; font-weight: 600;
   }
+  .node.c-midori .card { background:
+      radial-gradient(ellipse 46% 26% at 34% 18%, rgba(255,255,255,.97), rgba(255,255,255,0) 70%),
+      radial-gradient(ellipse 30% 16% at 72% 84%, rgba(255,255,255,.5), rgba(255,255,255,0) 70%),
+      conic-gradient(from 210deg at 50% 50%, rgba(255,170,215,.10), rgba(170,215,255,.10), rgba(215,255,190,.12), rgba(255,240,180,.08), rgba(255,170,215,.10)),
+      radial-gradient(circle at 32% 26%, rgba(255,255,255,.95) 0%, rgba(226,246,205,.66) 38%, rgba(171,220,140,.50) 72%, rgba(140,198,110,.58) 100%); color: #33512a; }
+  .node.c-sora .card { background:
+      radial-gradient(ellipse 46% 26% at 34% 18%, rgba(255,255,255,.97), rgba(255,255,255,0) 70%),
+      radial-gradient(ellipse 30% 16% at 72% 84%, rgba(255,255,255,.5), rgba(255,255,255,0) 70%),
+      conic-gradient(from 210deg at 50% 50%, rgba(255,170,215,.10), rgba(170,215,255,.12), rgba(215,255,190,.10), rgba(255,240,180,.08), rgba(255,170,215,.10)),
+      radial-gradient(circle at 32% 26%, rgba(255,255,255,.95) 0%, rgba(210,238,252,.66) 38%, rgba(140,200,240,.50) 72%, rgba(105,175,225,.58) 100%); color: #274b63; }
+  .node.c-momo .card { background:
+      radial-gradient(ellipse 46% 26% at 34% 18%, rgba(255,255,255,.97), rgba(255,255,255,0) 70%),
+      radial-gradient(ellipse 30% 16% at 72% 84%, rgba(255,255,255,.5), rgba(255,255,255,0) 70%),
+      conic-gradient(from 210deg at 50% 50%, rgba(255,170,215,.12), rgba(170,215,255,.10), rgba(215,255,190,.10), rgba(255,240,180,.08), rgba(255,170,215,.12)),
+      radial-gradient(circle at 32% 26%, rgba(255,255,255,.95) 0%, rgba(253,224,235,.68) 38%, rgba(246,170,200,.50) 72%, rgba(238,140,180,.56) 100%); color: #6d2f47; }
+  .node.c-himawari .card { background:
+      radial-gradient(ellipse 46% 26% at 34% 18%, rgba(255,255,255,.97), rgba(255,255,255,0) 70%),
+      radial-gradient(ellipse 30% 16% at 72% 84%, rgba(255,255,255,.5), rgba(255,255,255,0) 70%),
+      conic-gradient(from 210deg at 50% 50%, rgba(255,170,215,.10), rgba(170,215,255,.10), rgba(215,255,190,.10), rgba(255,240,180,.12), rgba(255,170,215,.10)),
+      radial-gradient(circle at 32% 26%, rgba(255,255,255,.95) 0%, rgba(253,243,205,.68) 38%, rgba(248,214,120,.52) 72%, rgba(240,190,80,.58) 100%); color: #664d15; }
+  .node.c-budou .card { background:
+      radial-gradient(ellipse 46% 26% at 34% 18%, rgba(255,255,255,.97), rgba(255,255,255,0) 70%),
+      radial-gradient(ellipse 30% 16% at 72% 84%, rgba(255,255,255,.5), rgba(255,255,255,0) 70%),
+      conic-gradient(from 210deg at 50% 50%, rgba(255,170,215,.12), rgba(170,215,255,.10), rgba(215,255,190,.10), rgba(255,240,180,.08), rgba(255,170,215,.12)),
+      radial-gradient(circle at 32% 26%, rgba(255,255,255,.95) 0%, rgba(238,226,252,.68) 38%, rgba(198,160,240,.50) 72%, rgba(170,125,228,.58) 100%); color: #472a66; }
+  header button.on { background: linear-gradient(160deg, #f2f9e6, #cde5ae); border-color: rgba(198,228,165,.9); color: #33512a; }
+  #editor .colorrow { display: flex; gap: 8px; flex-wrap: wrap; }
+  #editor .cchip { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 2px solid rgba(255,255,255,.9);
+    box-shadow: inset 0 0 8px rgba(255,255,255,.5), 0 3px 8px rgba(28,30,26,.25); padding: 0; }
+  #editor .cchip.on { outline: 3px solid #7fae56; outline-offset: 1px; }
+  #editor .cchip.auto { background: radial-gradient(circle at 32% 26%, rgba(255,255,255,.98), rgba(214,232,255,.35) 65%, rgba(255,214,238,.4)); }
+  #editor .cchip.midori { background: radial-gradient(circle at 32% 26%, #f4fbe9, #a9d68a 70%, #8cc66e); }
+  #editor .cchip.sora { background: radial-gradient(circle at 32% 26%, #eef8fe, #8cc8f0 70%, #69afe1); }
+  #editor .cchip.momo { background: radial-gradient(circle at 32% 26%, #fef0f5, #f6aac8 70%, #ee8cb4); }
+  #editor .cchip.himawari { background: radial-gradient(circle at 32% 26%, #fef9e3, #f8d678 70%, #f0be50); }
+  #editor .cchip.budou { background: radial-gradient(circle at 32% 26%, #f7effe, #c6a0f0 70%, #aa7de4); }
   .node.page .card { color: #43453e; }
   .node.selected .card { outline: 3px solid #fff; box-shadow: 0 0 0 6px rgba(190,235,160,.5), 0 14px 30px rgba(28,30,26,.4); }
   .node.snapcand .card { box-shadow: 0 0 0 6px rgba(255,255,255,.75), 0 14px 30px rgba(90,95,70,.25); }
@@ -135,6 +175,8 @@
     <span class="badge">ふわふわ版</span>
     <span class="sp"></span>
     <button id="btnNew" type="button">＋ 新規</button>
+    <button id="btnFish" type="button">魚眼</button>
+    <button id="btnShare" type="button">共有</button>
     <button id="btnFit" type="button">全体</button>
     <button id="btnReset" type="button">並びをリセット</button>
   </header>
@@ -158,6 +200,15 @@
     <button type="button" id="kindPage" class="kind on">ページ</button>
     <button type="button" id="kindFolder" class="kind">フォルダ</button>
   </div>
+  <label>泡の色</label>
+  <div class="colorrow" id="colorRow">
+    <button type="button" class="cchip auto on" data-color="auto" title="自動"></button>
+    <button type="button" class="cchip midori" data-color="midori" title="みどり"></button>
+    <button type="button" class="cchip sora" data-color="sora" title="そら"></button>
+    <button type="button" class="cchip momo" data-color="momo" title="もも"></button>
+    <button type="button" class="cchip himawari" data-color="himawari" title="ひまわり"></button>
+    <button type="button" class="cchip budou" data-color="budou" title="ぶどう"></button>
+  </div>
   <label for="edBody">本文</label>
   <textarea id="edBody"></textarea>
   <div class="edrow">
@@ -178,9 +229,18 @@ let currentParent = 'root';
 let nodes = []; // {id,title,kind,r,x,y,el}
 let view = { x: 0, y: 0, s: 0.5 };
 let selectedId = null;
-let savedPos = {};
-try { savedPos = JSON.parse(localStorage.getItem(POS_KEY) || '{}'); } catch (e) { savedPos = {}; }
+function normalizeSettings(p) {
+  if (p && typeof p === 'object' && p.pos) return { pos: p.pos || {}, color: p.color || {}, links: p.links || [] };
+  return { pos: (p && typeof p === 'object') ? p : {}, color: {}, links: [] };
+}
+let settings = { pos: {}, color: {}, links: [] };
+try { settings = normalizeSettings(JSON.parse(localStorage.getItem(POS_KEY) || '{}')); } catch (e) {}
 let layoutRowId = null, layoutTimer = null;
+function scheduleSettingsSave() {
+  try { localStorage.setItem(POS_KEY, JSON.stringify(settings)); } catch (e) {}
+  clearTimeout(layoutTimer);
+  layoutTimer = setTimeout(saveLayoutRemote, 900);
+}
 const KEPOS_ID = 'a757f322-17fc-494a-9d77-cbe72fc06d26';
 
 const stage = document.getElementById('stage');
@@ -204,7 +264,7 @@ async function load() {
   const lr = rows.find(r => r.title === 'fuwa-layout' && r.kind === 'page');
   if (lr) {
     layoutRowId = lr.id;
-    try { const p = JSON.parse(lr.content || '{}'); if (p && typeof p === 'object') savedPos = p; } catch (e) {}
+    try { settings = normalizeSettings(JSON.parse(lr.content || '{}')); } catch (e) {}
   }
   statusEl.textContent = '全 ' + rows.length + ' ページ（並びは全端末で同期されます）';
   buildLevel('root');
@@ -217,7 +277,7 @@ function buildLevel(pid) {
   world.querySelectorAll('.node').forEach(el => el.remove());
   seams.querySelectorAll('line, path').forEach(el => el.remove());
   const kids = childrenOf(pid);
-  const posMap = savedPos[pid] || {};
+  const posMap = settings.pos[pid] || {};
   nodes = kids.map((r, i) => {
     const rad = r.kind === 'folder' ? 66 : 54;
     let p = posMap[r.id];
@@ -226,7 +286,7 @@ function buildLevel(pid) {
       p = { x: WORLD_W / 2 + dist * Math.cos(ang), y: WORLD_H / 2 + dist * Math.sin(ang) * 0.82 };
     }
     const el = document.createElement('div');
-    el.className = 'node ' + (r.kind === 'folder' ? 'folder' : 'page');
+    el.className = 'node ' + (r.kind === 'folder' ? 'folder' : 'page') + (settings.color[r.id] ? ' c-' + settings.color[r.id] : '');
     el.dataset.id = r.id;
     el.style.width = rad * 2 + 'px'; el.style.height = rad * 2 + 'px';
     const card = document.createElement('div');
@@ -245,8 +305,45 @@ function buildLevel(pid) {
   renderSeams();
 }
 
-function place(n) { n.el.style.left = n.x + 'px'; n.el.style.top = n.y + 'px'; }
-function applyView() { world.style.transform = 'translate(' + view.x + 'px,' + view.y + 'px) scale(' + view.s + ')'; }
+// ===== 魚眼 =====
+let fisheyeOn = false;
+const FISH_K = 0.55;
+function fishParams() {
+  const sw = stage.clientWidth, sh = stage.clientHeight;
+  if (!sw || !sh) return null;
+  return {
+    cx: (sw / 2 - view.x) / view.s, cy: (sh / 2 - view.y) / view.s,
+    Rw: (Math.min(sw, sh) * 0.62) / view.s
+  };
+}
+function warpPoint(x, y) {
+  if (!fisheyeOn) return { x, y, k: 1 };
+  const P = fishParams(); if (!P) return { x, y, k: 1 };
+  const dx = x - P.cx, dy = y - P.cy, d = Math.hypot(dx, dy);
+  if (d >= P.Rw || d === 0) return { x, y, k: 1 };
+  const t = 1 - (d / P.Rw) * (d / P.Rw);
+  return { x: P.cx + dx * (1 + FISH_K * 0.5 * t), y: P.cy + dy * (1 + FISH_K * 0.5 * t), k: 1 + FISH_K * t };
+}
+function unwarpPoint(x, y) {
+  if (!fisheyeOn) return { x, y };
+  const P = fishParams(); if (!P) return { x, y };
+  const dx = x - P.cx, dy = y - P.cy, dp = Math.hypot(dx, dy);
+  if (dp === 0) return { x, y };
+  let d = dp;
+  for (let i = 0; i < 3; i++) {
+    const t = Math.max(0, 1 - (d / P.Rw) * (d / P.Rw));
+    d = dp / (1 + FISH_K * 0.5 * t);
+  }
+  const s = d / dp;
+  return { x: P.cx + dx * s, y: P.cy + dy * s };
+}
+function place(n) {
+  const w = warpPoint(n.x, n.y);
+  n.el.style.left = w.x + 'px'; n.el.style.top = w.y + 'px';
+  n.el.style.transform = 'translate(-50%,-50%) scale(' + w.k.toFixed(3) + ')';
+}
+function layoutAll() { nodes.forEach(place); renderSeams(); }
+function applyView() { world.style.transform = 'translate(' + view.x + 'px,' + view.y + 'px) scale(' + view.s + ')'; if (fisheyeOn) layoutAll(); }
 
 function renderCrumbs() {
   crumbsEl.innerHTML = '';
@@ -270,7 +367,9 @@ function renderDetail() {
     s.textContent = 'カードをタップすると、カメラが寄ります';
     detailEl.appendChild(s); return;
   }
-  const k = document.createElement('span'); k.className = 'dk'; k.textContent = n.kind === 'folder' ? 'フォルダ' : 'ページ';
+  const k = document.createElement('span'); k.className = 'dk';
+  const lc = linkCount(n.id);
+  k.textContent = (n.kind === 'folder' ? 'フォルダ' : 'ページ') + (lc ? ' ・ リンク' + lc + '本' : '');
   const t = document.createElement('span'); t.className = 'dt'; t.textContent = n.title;
   detailEl.appendChild(k); detailEl.appendChild(t);
   const b = document.createElement('button'); b.type = 'button';
@@ -281,31 +380,71 @@ function renderDetail() {
   e.textContent = '編集';
   e.addEventListener('click', () => openEditor(n));
   detailEl.appendChild(e);
+  const lb = document.createElement('button'); lb.type = 'button';
+  lb.textContent = linkMode ? 'つなぎ中…' : 'つなぐ';
+  lb.addEventListener('click', () => {
+    linkMode = !linkMode;
+    statusEl.textContent = linkMode ? 'つなぎたい泡をタップしてね（つながってたら切れます）' : '';
+    renderDetail();
+  });
+  detailEl.appendChild(lb);
+}
+
+function linkCount(id) { return settings.links.filter(l => l.a === id || l.b === id).length; }
+function toggleLink(a, b) {
+  const i = settings.links.findIndex(l => (l.a === a && l.b === b) || (l.a === b && l.b === a));
+  if (i >= 0) { settings.links.splice(i, 1); statusEl.textContent = 'リンクを切りました'; }
+  else { settings.links.push({ a, b }); statusEl.textContent = 'リンクしました'; }
+  scheduleSettingsSave(); renderSeams();
 }
 
 function renderSeams() {
   seams.querySelectorAll('line, path').forEach(el => el.remove());
+  const NS = 'http://www.w3.org/2000/svg';
+  const byNode = new Map(nodes.map(n => [n.id, n]));
+  // リンク：少し弧を描く糸
+  for (const L of settings.links) {
+    const a = byNode.get(L.a), b = byNode.get(L.b);
+    if (!a || !b) continue;
+    const wa = warpPoint(a.x, a.y), wb = warpPoint(b.x, b.y);
+    const dx = wb.x - wa.x, dy = wb.y - wa.y, d = Math.hypot(dx, dy) || 1;
+    const cxp = (wa.x + wb.x) / 2 - dy / d * Math.min(60, d * 0.18);
+    const cyp = (wa.y + wb.y) / 2 + dx / d * Math.min(60, d * 0.18);
+    const dd = 'M ' + wa.x + ' ' + wa.y + ' Q ' + cxp + ' ' + cyp + ' ' + wb.x + ' ' + wb.y;
+    const glow = document.createElementNS(NS, 'path');
+    glow.setAttribute('d', dd); glow.setAttribute('fill', 'none');
+    glow.setAttribute('stroke', '#cfe3ae'); glow.setAttribute('stroke-width', '9');
+    glow.setAttribute('opacity', '0.26'); glow.setAttribute('stroke-linecap', 'round');
+    seams.appendChild(glow);
+    const line = document.createElementNS(NS, 'path');
+    line.setAttribute('d', dd); line.setAttribute('fill', 'none');
+    line.setAttribute('stroke', 'rgba(246,249,232,0.92)'); line.setAttribute('stroke-width', '2.2');
+    line.setAttribute('stroke-linecap', 'round');
+    seams.appendChild(line);
+  }
+  // ペア（ひっつき）：2つを包む淡い緑のカプセル型の縁
   for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
     const a = nodes[i], b = nodes[j];
-    const d = Math.hypot(a.x - b.x, a.y - b.y);
-    if (Math.abs(d - (a.r + b.r)) <= 16) {
-      // ペアの外枠：2つを包む淡い緑のカプセル型の縁
-      const R = Math.max(a.r, b.r) + 10;
-      const ux = (b.x - a.x) / d, uy = (b.y - a.y) / d, px = -uy * R, py = ux * R;
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const wa = warpPoint(a.x, a.y), wb = warpPoint(b.x, b.y);
+    const ra = a.r * wa.k, rb = b.r * wb.k;
+    const d = Math.hypot(wa.x - wb.x, wa.y - wb.y);
+    if (Math.abs(d - (ra + rb)) <= 18 && d > 1) {
+      const R = Math.max(ra, rb) + 10;
+      const ux = (wb.x - wa.x) / d, uy = (wb.y - wa.y) / d, px = -uy * R, py = ux * R;
+      const path = document.createElementNS(NS, 'path');
       path.setAttribute('d',
-        'M ' + (a.x + px) + ' ' + (a.y + py) +
-        ' L ' + (b.x + px) + ' ' + (b.y + py) +
-        ' A ' + R + ' ' + R + ' 0 0 1 ' + (b.x - px) + ' ' + (b.y - py) +
-        ' L ' + (a.x - px) + ' ' + (a.y - py) +
-        ' A ' + R + ' ' + R + ' 0 0 1 ' + (a.x + px) + ' ' + (a.y + py) + ' Z');
+        'M ' + (wa.x + px) + ' ' + (wa.y + py) +
+        ' L ' + (wb.x + px) + ' ' + (wb.y + py) +
+        ' A ' + R + ' ' + R + ' 0 0 1 ' + (wb.x - px) + ' ' + (wb.y - py) +
+        ' L ' + (wa.x - px) + ' ' + (wa.y - py) +
+        ' A ' + R + ' ' + R + ' 0 0 1 ' + (wa.x + px) + ' ' + (wa.y + py) + ' Z');
       path.setAttribute('fill', 'rgba(169,196,141,0.34)');
       path.setAttribute('stroke', 'rgba(178,222,142,0.75)');
       path.setAttribute('stroke-width', '2.5');
       seams.appendChild(path);
       const mk = (w, op, blur) => {
-        const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        ln.setAttribute('x1', a.x); ln.setAttribute('y1', a.y); ln.setAttribute('x2', b.x); ln.setAttribute('y2', b.y);
+        const ln = document.createElementNS(NS, 'line');
+        ln.setAttribute('x1', wa.x); ln.setAttribute('y1', wa.y); ln.setAttribute('x2', wb.x); ln.setAttribute('y2', wb.y);
         ln.setAttribute('stroke', '#a9c48d'); ln.setAttribute('stroke-width', w); ln.setAttribute('stroke-linecap', 'round');
         ln.setAttribute('opacity', op); if (blur) ln.setAttribute('filter', 'url(#soft)');
         seams.appendChild(ln);
@@ -319,6 +458,7 @@ function renderSeams() {
 // ===== 操作（パン／ズーム／ドラッグ／吸着／カメラ） =====
 const pointers = new Map();
 let dragNode = null, dragOff = { x: 0, y: 0 }, dragMoved = false, snapTarget = null;
+let linkMode = false;
 let panStart = null, pinchStart = null, camAnim = null;
 
 function toWorld(cx, cy) {
@@ -356,13 +496,11 @@ function select(id) {
 function savePos() {
   const m = {};
   nodes.forEach(n => { m[n.id] = { x: Math.round(n.x), y: Math.round(n.y) }; });
-  savedPos[currentParent] = m;
-  try { localStorage.setItem(POS_KEY, JSON.stringify(savedPos)); } catch (e) {}
-  clearTimeout(layoutTimer);
-  layoutTimer = setTimeout(saveLayoutRemote, 900);
+  settings.pos[currentParent] = m;
+  scheduleSettingsSave();
 }
 async function saveLayoutRemote() {
-  const content = JSON.stringify(savedPos);
+  const content = JSON.stringify(settings);
   if (layoutRowId) {
     const { error } = await sb.from('wiki_pages').update({ content }).eq('id', layoutRowId);
     if (!error) { const r = byId.get(layoutRowId); if (r) r.content = content; }
@@ -387,7 +525,8 @@ stage.addEventListener('pointerdown', (ev) => {
   if (nodeEl) {
     const n = nodes.find(x => x.id === nodeEl.dataset.id);
     if (n) {
-      const w = toWorld(ev.clientX, ev.clientY);
+      let w = toWorld(ev.clientX, ev.clientY);
+      if (fisheyeOn) w = unwarpPoint(w.x, w.y);
       dragNode = n; dragOff = { x: n.x - w.x, y: n.y - w.y }; dragMoved = false; snapTarget = null;
       n.el.classList.add('dragging');
       stage.setPointerCapture(ev.pointerId);
@@ -413,7 +552,8 @@ stage.addEventListener('pointermove', (ev) => {
     return;
   }
   if (dragNode) {
-    const w = toWorld(ev.clientX, ev.clientY);
+    let w = toWorld(ev.clientX, ev.clientY);
+    if (fisheyeOn) w = unwarpPoint(w.x, w.y);
     let nx = w.x + dragOff.x, ny = w.y + dragOff.y;
     if (Math.hypot(nx - dragNode.x, ny - dragNode.y) > 2) dragMoved = true;
     nx = Math.min(WORLD_W - dragNode.r, Math.max(dragNode.r, nx));
@@ -448,6 +588,8 @@ function endPointer(ev) {
     n.el.classList.remove('dragging');
     nodes.forEach(o => o.el.classList.remove('snapcand'));
     if (dragMoved) { savePos(); renderSeams(); }
+    else if (linkMode && selectedId && selectedId !== n.id) { toggleLink(selectedId, n.id); linkMode = false; renderDetail(); }
+    else if (linkMode && selectedId === n.id) { linkMode = false; renderDetail(); }
     else { select(n.id); centerOn(n); }
     dragNode = null; snapTarget = null;
     return;
@@ -484,9 +626,19 @@ sheet.addEventListener('click', (ev) => { if (ev.target === sheet) sheet.classLi
 // ===== ボタン =====
 document.getElementById('btnFit').addEventListener('click', () => { select(null); fitView(true); });
 document.getElementById('btnReset').addEventListener('click', () => {
-  delete savedPos[currentParent];
-  try { localStorage.setItem(POS_KEY, JSON.stringify(savedPos)); } catch (e) {}
+  delete settings.pos[currentParent];
+  scheduleSettingsSave();
   buildLevel(currentParent); fitView(true);
+});
+document.getElementById('btnFish').addEventListener('click', () => {
+  fisheyeOn = !fisheyeOn;
+  document.getElementById('btnFish').classList.toggle('on', fisheyeOn);
+  layoutAll();
+});
+document.getElementById('btnShare').addEventListener('click', async () => {
+  const url = 'https://mail2461-code.github.io/pengin/fuwafuwa.html';
+  try { await navigator.clipboard.writeText(url); statusEl.textContent = 'リンクをコピーしました。パスコードは別口で伝えてね'; }
+  catch (e) { statusEl.textContent = 'URL: ' + url; }
 });
 window.addEventListener('resize', () => fitView(false));
 
@@ -522,9 +674,16 @@ function setKind(k) {
 }
 document.getElementById('kindPage').addEventListener('click', () => setKind('page'));
 document.getElementById('kindFolder').addEventListener('click', () => setKind('folder'));
+let edColor = 'auto';
+function setEdColor(c) {
+  edColor = c;
+  document.querySelectorAll('#colorRow .cchip').forEach(ch => ch.classList.toggle('on', ch.dataset.color === c));
+}
+document.querySelectorAll('#colorRow .cchip').forEach(ch => ch.addEventListener('click', () => setEdColor(ch.dataset.color)));
 function openEditor(n) {
   editingId = n ? n.id : null;
   setKind(n ? n.kind : 'page');
+  setEdColor(n ? (settings.color[n.id] || 'auto') : 'auto');
   edHeading.textContent = n ? '編集' : '新規作成（' + (currentParent === 'root' ? 'トップ' : folderName(currentParent)) + 'の中）';
   edTitle.value = n ? n.title : '';
   const row = n ? byId.get(n.id) : null;
@@ -546,6 +705,8 @@ document.getElementById('edSave').addEventListener('click', async () => {
     if (error) { alert(error.message); return; }
     const r = byId.get(editingId);
     if (r) Object.assign(r, { title, kind: edKind, content: body });
+    if (edColor === 'auto') delete settings.color[editingId]; else settings.color[editingId] = edColor;
+    scheduleSettingsSave();
     const keep = editingId;
     closeEditor(); buildLevel(currentParent); select(keep);
     statusEl.textContent = '☁️ 保存しました';
@@ -557,6 +718,7 @@ document.getElementById('edSave').addEventListener('click', async () => {
     const { error } = await sb.from('wiki_pages').insert(row);
     if (error) { alert(error.message); return; }
     rows.push({ ...row }); byId.set(id, { ...row });
+    if (edColor !== 'auto') { settings.color[id] = edColor; scheduleSettingsSave(); }
     closeEditor(); buildLevel(currentParent);
     const n = nodes.find(x => x.id === id);
     if (n) { select(id); centerOn(n); }
@@ -578,7 +740,9 @@ edDelete.addEventListener('click', async () => {
   const { error } = await sb.from('wiki_pages').delete().in('id', [...ids]);
   if (error) { alert(error.message); return; }
   rows = rows.filter(x => !ids.has(x.id));
-  ids.forEach(id => byId.delete(id));
+  ids.forEach(id => { byId.delete(id); delete settings.color[id]; });
+  settings.links = settings.links.filter(l => !ids.has(l.a) && !ids.has(l.b));
+  scheduleSettingsSave();
   closeEditor(); buildLevel(currentParent);
   statusEl.textContent = '☁️ 削除しました';
 });
