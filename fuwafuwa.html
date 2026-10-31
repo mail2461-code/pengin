@@ -96,6 +96,22 @@
   #fishBar { display: none; padding: 0 14px 8px; align-items: center; gap: 10px; color: #f0f0e6; font-size: 13px; }
   #fishBar.open { display: flex; }
   #fishBar input[type="range"] { flex: 1; accent-color: #b9dc92; height: 30px; }
+  .linklabel { font-size: 25px; font-weight: 600; fill: #f6f8e8; paint-order: stroke; stroke: rgba(43,45,38,.6); stroke-width: 5px; }
+  #linkSheet { position: fixed; inset: 0; background: rgba(50,52,44,.45); display: none; z-index: 30; }
+  #linkSheet.open { display: block; }
+  #linkSheet .box { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88dvh; overflow: auto; background: #f6f6f2;
+    border-radius: 20px 20px 0 0; padding: 18px 20px calc(20px + env(safe-area-inset-bottom)); }
+  #linkSheet h2 { font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; font-size: 19px; margin: 0 0 12px; }
+  #linkSheet .close { float: right; font: inherit; font-size: 14px; font-weight: 600; min-height: 42px; padding: 8px 18px;
+    border-radius: 999px; border: 1px solid rgba(255,255,255,.65); cursor: pointer;
+    background: linear-gradient(160deg, rgba(255,255,255,.97), rgba(230,230,224,.94)); box-shadow: 0 4px 12px rgba(28,30,26,.22); }
+  #linkSheet .lsrow { margin: 14px 0; }
+  #linkSheet .lsrow .who { font-weight: 600; font-size: 15px; margin-bottom: 5px; color: #3c3e36; }
+  #linkSheet .lsrow input { width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; color: #33352f;
+    border: 1px solid #c9c9c0; border-radius: 14px; background: #fff; }
+  #linkSheet #lsSave { width: 100%; font: inherit; font-size: 16px; font-weight: 700; min-height: 52px; margin-top: 8px; cursor: pointer;
+    border-radius: 999px; border: 1px solid rgba(160,200,120,.8); color: #2e4a24;
+    background: linear-gradient(160deg, #eef7dd, #b9dc92); box-shadow: 0 5px 16px rgba(60,90,40,.25); }
   body.day { background: #93a884; }
   body.day #stage { background:
       radial-gradient(ellipse 65% 45% at 22% 12%, rgba(240,250,220,.55) 0%, rgba(240,250,220,0) 60%),
@@ -234,6 +250,12 @@
     <button type="button" id="edDelete" class="danger">削除</button>
   </div>
 </div></div>
+<div id="linkSheet"><div class="box">
+  <button class="close" id="lsClose" type="button">閉じる</button>
+  <h2 id="lsTitle">リンクメモ</h2>
+  <div id="lsRows"></div>
+  <button type="button" id="lsSave">保存する</button>
+</div></div>
 
 <script>
 const SUPABASE_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
@@ -293,7 +315,7 @@ function buildLevel(pid) {
   currentParent = pid;
   selectedId = null;
   world.querySelectorAll('.node').forEach(el => el.remove());
-  seams.querySelectorAll('line, path').forEach(el => el.remove());
+  seams.querySelectorAll('line, path, text').forEach(el => el.remove());
   const kids = childrenOf(pid);
   const posMap = settings.pos[pid] || {};
   nodes = kids.map((r, i) => {
@@ -423,6 +445,12 @@ function renderDetail() {
     renderDetail();
   });
   detailEl.appendChild(lb);
+  if (lc) {
+    const mb = document.createElement('button'); mb.type = 'button';
+    mb.textContent = 'リンクメモ';
+    mb.addEventListener('click', () => openLinkSheet(n));
+    detailEl.appendChild(mb);
+  }
 }
 
 function linkCount(id) { return settings.links.filter(l => l.a === id || l.b === id).length; }
@@ -444,7 +472,9 @@ function pairPath(wa, wb, ra, rb) {
   const n2 = { x: ux * cosf + uy * sinf, y: uy * cosf - ux * sinf };
   const a1 = (wa.x + Ra * n1.x) + ' ' + (wa.y + Ra * n1.y), b1 = (wb.x + Rb * n1.x) + ' ' + (wb.y + Rb * n1.y);
   const b2 = (wb.x + Rb * n2.x) + ' ' + (wb.y + Rb * n2.y), a2 = (wa.x + Ra * n2.x) + ' ' + (wa.y + Ra * n2.y);
-  return 'M ' + a1 + ' L ' + b1 + ' A ' + Rb + ' ' + Rb + ' 0 1 1 ' + b2 + ' L ' + a2 + ' A ' + Ra + ' ' + Ra + ' 0 1 1 ' + a1 + ' Z';
+  const largeB = (360 - 2 * phi * 180 / Math.PI) > 180 ? 1 : 0;
+  const largeA = (2 * phi * 180 / Math.PI) > 180 ? 1 : 0;
+  return 'M ' + a1 + ' L ' + b1 + ' A ' + Rb + ' ' + Rb + ' 0 ' + largeB + ' 0 ' + b2 + ' L ' + a2 + ' A ' + Ra + ' ' + Ra + ' 0 ' + largeA + ' 0 ' + a1 + ' Z';
 }
 function toggleLink(a, b) {
   const i = settings.links.findIndex(l => (l.a === a && l.b === b) || (l.a === b && l.b === a));
@@ -454,7 +484,7 @@ function toggleLink(a, b) {
 }
 
 function renderSeams() {
-  seams.querySelectorAll('line, path').forEach(el => el.remove());
+  seams.querySelectorAll('line, path, text').forEach(el => el.remove());
   const NS = 'http://www.w3.org/2000/svg';
   const byNode = new Map(nodes.map(n => [n.id, n]));
   // リンク：少し弧を描く糸
@@ -476,6 +506,15 @@ function renderSeams() {
     line.setAttribute('stroke', 'rgba(246,249,232,0.92)'); line.setAttribute('stroke-width', '2.2');
     line.setAttribute('stroke-linecap', 'round');
     seams.appendChild(line);
+    if (L.label) {
+      const t = document.createElementNS(NS, 'text');
+      t.setAttribute('x', 0.25 * wa.x + 0.5 * cxp + 0.25 * wb.x);
+      t.setAttribute('y', 0.25 * wa.y + 0.5 * cyp + 0.25 * wb.y);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('class', 'linklabel');
+      t.textContent = L.label;
+      seams.appendChild(t);
+    }
   }
   // ペア（ひっつき）：2つを包む淡い緑のカプセル型の縁
   for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
@@ -508,6 +547,20 @@ const pointers = new Map();
 let dragNode = null, dragOff = { x: 0, y: 0 }, dragMoved = false, snapTarget = null;
 let linkMode = false;
 let linkAsk = null;
+let dragGroup = [], dragGroupIds = new Set(), dragStartPartners = new Set();
+function buildGroup(n) {
+  const seen = new Map([[n.id, n]]);
+  const queue = [n];
+  while (queue.length) {
+    const c = queue.shift();
+    for (const o of nodes) {
+      if (seen.has(o.id)) continue;
+      const d = Math.hypot(c.x - o.x, c.y - o.y);
+      if (Math.abs(d - (c.r + o.r)) <= 22) { seen.set(o.id, o); queue.push(o); }
+    }
+  }
+  return [...seen.values()].map(m => ({ node: m, dx: m.x - n.x, dy: m.y - n.y }));
+}
 let panStart = null, pinchStart = null, camAnim = null;
 
 function toWorld(cx, cy) {
@@ -584,7 +637,10 @@ stage.addEventListener('pointerdown', (ev) => {
       let w = toWorld(ev.clientX, ev.clientY);
       if (fisheyeOn) w = unwarpPoint(w.x, w.y);
       dragNode = n; dragOff = { x: n.x - w.x, y: n.y - w.y }; dragMoved = false; snapTarget = null;
-      n.el.classList.add('dragging');
+      dragGroup = buildGroup(n);
+      dragGroupIds = new Set(dragGroup.map(m => m.node.id));
+      dragStartPartners = new Set(dragGroup.filter(m => m.node !== n).map(m => m.node.id));
+      dragGroup.forEach(m => m.node.el.classList.add('dragging'));
       stage.setPointerCapture(ev.pointerId);
     }
   } else {
@@ -616,7 +672,7 @@ stage.addEventListener('pointermove', (ev) => {
     ny = Math.min(WORLD_H - dragNode.r, Math.max(dragNode.r, ny));
     snapTarget = null;
     for (const o of nodes) {
-      if (o === dragNode) continue;
+      if (o === dragNode || dragGroupIds.has(o.id)) continue;
       const d = Math.hypot(nx - o.x, ny - o.y), want = dragNode.r + o.r + 4;
       if (Math.abs(d - want) < 30 && d > 1) {
         const k = want / d;
@@ -626,6 +682,12 @@ stage.addEventListener('pointermove', (ev) => {
       }
     }
     dragNode.x = nx; dragNode.y = ny; place(dragNode);
+    for (const m of dragGroup) {
+      if (m.node === dragNode) continue;
+      m.node.x = Math.min(WORLD_W - m.node.r, Math.max(m.node.r, nx + m.dx));
+      m.node.y = Math.min(WORLD_H - m.node.r, Math.max(m.node.r, ny + m.dy));
+      place(m.node);
+    }
     nodes.forEach(o => o.el.classList.toggle('snapcand', o === snapTarget));
     renderSeams();
     return;
@@ -641,17 +703,17 @@ function endPointer(ev) {
   if (pointers.size < 2) pinchStart = null;
   if (dragNode) {
     const n = dragNode;
-    n.el.classList.remove('dragging');
+    dragGroup.forEach(m => m.node.el.classList.remove('dragging'));
     nodes.forEach(o => o.el.classList.remove('snapcand'));
     if (dragMoved) {
       savePos(); renderSeams();
       const o = pairPartner(n);
-      if (o && !isLinked(n.id, o.id)) { linkAsk = { a: n.id, b: o.id }; renderDetail(); }
+      if (o && !dragStartPartners.has(o.id) && !isLinked(n.id, o.id)) { linkAsk = { a: n.id, b: o.id }; renderDetail(); }
     }
     else if (linkMode && selectedId && selectedId !== n.id) { toggleLink(selectedId, n.id); linkMode = false; renderDetail(); }
     else if (linkMode && selectedId === n.id) { linkMode = false; renderDetail(); }
     else { select(n.id); centerOn(n); }
-    dragNode = null; snapTarget = null;
+    dragNode = null; snapTarget = null; dragGroup = []; dragGroupIds = new Set(); dragStartPartners = new Set();
     return;
   }
   if (panStart) {
@@ -827,6 +889,39 @@ edDelete.addEventListener('click', async () => {
   scheduleSettingsSave();
   closeEditor(); buildLevel(currentParent);
   statusEl.textContent = '☁️ 削除しました';
+});
+
+// ===== リンクメモ =====
+const lsEl = document.getElementById('linkSheet');
+function openLinkSheet(n) {
+  document.getElementById('lsTitle').textContent = 'リンクメモ（' + n.title + '）';
+  const rowsEl = document.getElementById('lsRows');
+  rowsEl.innerHTML = '';
+  settings.links.filter(l => l.a === n.id || l.b === n.id).forEach(L => {
+    const other = byId.get(L.a === n.id ? L.b : L.a);
+    const div = document.createElement('div'); div.className = 'lsrow';
+    const who = document.createElement('div'); who.className = 'who';
+    who.textContent = '🔗 ' + (other ? other.title : '?');
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.value = L.label || '';
+    inp.placeholder = '関係性メモ（例：同じ△の話）';
+    inp.dataset.linkKey = L.a + '|' + L.b;
+    div.appendChild(who); div.appendChild(inp); rowsEl.appendChild(div);
+  });
+  if (!rowsEl.children.length) rowsEl.textContent = 'リンクがありません';
+  lsEl.classList.add('open');
+}
+document.getElementById('lsClose').addEventListener('click', () => lsEl.classList.remove('open'));
+lsEl.addEventListener('click', (ev) => { if (ev.target === lsEl) lsEl.classList.remove('open'); });
+document.getElementById('lsSave').addEventListener('click', () => {
+  lsEl.querySelectorAll('input[data-link-key]').forEach(inp => {
+    const [a, b] = inp.dataset.linkKey.split('|');
+    const L = settings.links.find(l => l.a === a && l.b === b);
+    if (L) L.label = inp.value.trim();
+  });
+  scheduleSettingsSave(); renderSeams();
+  lsEl.classList.remove('open');
+  statusEl.textContent = 'リンクメモを保存しました';
 });
 
 load();
