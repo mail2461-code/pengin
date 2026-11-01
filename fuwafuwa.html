@@ -875,7 +875,8 @@ stage.addEventListener('wheel', (ev) => {
 const sheet = document.getElementById('sheet');
 function richText(s) {
   const esc = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  return esc.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  return esc.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
 }
 function openSheet(n) {
   const row = byId.get(n.id);
