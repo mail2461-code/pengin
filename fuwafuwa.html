@@ -873,10 +873,14 @@ stage.addEventListener('wheel', (ev) => {
 
 // ===== 本文シート =====
 const sheet = document.getElementById('sheet');
+function richText(s) {
+  const esc = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return esc.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+}
 function openSheet(n) {
   const row = byId.get(n.id);
   document.getElementById('sheetTitle').textContent = n.title;
-  document.getElementById('sheetBody').textContent = (row && row.content) ? row.content : '（本文は空です）';
+  document.getElementById('sheetBody').innerHTML = (row && row.content) ? richText(row.content) : '（本文は空です）';
   sheet.classList.add('open');
 }
 document.getElementById('sheetClose').addEventListener('click', () => sheet.classList.remove('open'));
