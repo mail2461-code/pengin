@@ -53,7 +53,7 @@
   .node .card {
     width: 100%; height: 100%; border-radius: 50%;
     display: flex; align-items: center; justify-content: center; text-align: center;
-    padding: 13px; font-size: 14px; line-height: 1.35; word-break: break-all;
+    padding: 10px; font-size: 18px; line-height: 1.32; word-break: break-all;
     border: 1.5px solid rgba(255,255,255,.85);
     background:
       radial-gradient(ellipse 46% 26% at 34% 18%, rgba(255,255,255,.97), rgba(255,255,255,0) 70%),
@@ -496,7 +496,7 @@ function renderCrumbs() {
   const mk = (label, pid) => {
     const b = document.createElement('button'); b.type = 'button'; b.textContent = '🍞 ' + label;
     b.dataset.pid = pid;
-    b.addEventListener('click', () => { buildLevel(pid); fitView(true); });
+    b.addEventListener('click', () => { buildLevel(pid); initialView(true); });
     crumbsEl.appendChild(b);
   };
   mk('トップ', 'root');
@@ -535,7 +535,7 @@ function renderDetail() {
   detailEl.appendChild(k); detailEl.appendChild(t);
   const b = document.createElement('button'); b.type = 'button';
   b.textContent = n.kind === 'folder' ? '開く ›' : '本文を見る';
-  b.addEventListener('click', () => { if (n.kind === 'folder') { buildLevel(n.id); fitView(true); } else openSheet(n); });
+  b.addEventListener('click', () => { if (n.kind === 'folder') { buildLevel(n.id); initialView(true); } else openSheet(n); });
   detailEl.appendChild(b);
   const e = document.createElement('button'); e.type = 'button';
   e.textContent = '編集';
@@ -708,16 +708,17 @@ function fitView(anim) {
   const to = { s, x: (r.width - WORLD_W * s) / 2, y: (r.height - WORLD_H * s) / 2 };
   if (anim) animateView(to, 380); else { view = to; applyView(); }
 }
-function openView() {
+function openView() { initialView(false); }
+function initialView(anim) {
   const r = stage.getBoundingClientRect();
   const fitS = Math.min(r.width / WORLD_W, r.height / WORLD_H) * 1.02;
   const s = Math.min(1.6, fitS * 2.1);
-  view = { s, x: r.width / 2 - (WORLD_W / 2) * s, y: r.height / 2 - (WORLD_H / 2) * s };
-  applyView();
+  const to = { s, x: r.width / 2 - (WORLD_W / 2) * s, y: r.height / 2 - (WORLD_H / 2) * s };
+  if (anim) animateView(to, 380); else { view = to; applyView(); }
 }
 function centerOn(n) {
   const r = stage.getBoundingClientRect();
-  const s = Math.max(view.s, 1.45);
+  const s = Math.max(view.s, 1.25);
   animateView({ s, x: r.width / 2 - n.x * s, y: r.height / 2 - n.y * s }, 430);
 }
 function select(id) {
@@ -848,7 +849,7 @@ function endPointer(ev) {
     }
     else if (linkMode && selectedId && selectedId !== n.id) { toggleLink(selectedId, n.id); linkMode = false; renderDetail(); }
     else if (linkMode && selectedId === n.id) { linkMode = false; renderDetail(); }
-    else if (selectedId === n.id) { linkAsk = null; if (n.kind === 'folder') { buildLevel(n.id); fitView(true); } else openSheet(n); }
+    else if (selectedId === n.id) { linkAsk = null; if (n.kind === 'folder') { buildLevel(n.id); initialView(true); } else openSheet(n); }
     else { linkAsk = null; select(n.id); centerOn(n); }
     dragNode = null; snapTarget = null; dragGroup = []; dragGroupIds = new Set(); dragStartPartners = new Set();
     return;
