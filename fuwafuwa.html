@@ -244,7 +244,6 @@
     <button id="btnGuide" type="button" class="on">□↔⬡</button>
     <button id="btnSearch" type="button">🔍</button>
     <button id="btnReload" type="button">🔄</button>
-    <button id="btnFit" type="button">🏠</button>
     <button id="btnReset" type="button">並びをリセット</button>
   </header>
   <div id="fishBar"><span>魚眼の強さ</span><input id="fishRange" type="range" min="0" max="100" value="50"></div>
@@ -890,8 +889,8 @@ document.getElementById('sheetClose').addEventListener('click', () => sheet.clas
 sheet.addEventListener('click', (ev) => { if (ev.target === sheet) sheet.classList.remove('open'); });
 
 // ===== ボタン =====
-document.getElementById('btnFit').addEventListener('click', () => { select(null); fitView(true); });
 document.getElementById('btnReset').addEventListener('click', () => {
+  if (!confirm('このフォルダの並びをリセットしますか？（ドラッグで並べた位置が初期配置に戻ります）')) return;
   delete settings.pos[currentParent];
   scheduleSettingsSave();
   buildLevel(currentParent); fitView(true);
