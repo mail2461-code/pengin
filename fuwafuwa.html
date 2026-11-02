@@ -109,6 +109,8 @@
     padding: 11px 14px; background: none; border: none; border-bottom: 1px solid #e6e6de; color: #33352f; cursor: pointer; }
   #searchResults .sres:last-child { border-bottom: none; }
   #searchResults .snone { padding: 11px 14px; font-size: 14px; color: #8b887a; }
+  #rocket { position: absolute; left: 0; top: 0; z-index: 1; font-size: 34px; pointer-events: none; opacity: 0;
+    will-change: transform, opacity; filter: drop-shadow(0 2px 4px rgba(20,22,18,.35)); }
   #penguin { position: absolute; left: 0; top: 0; z-index: 1; pointer-events: none; will-change: transform; }
   #penguin svg { width: 100%; height: auto; display: block; animation: waddle .34s ease-in-out infinite alternate;
     filter: drop-shadow(0 3px 3px rgba(20,22,18,.35)); }
@@ -224,7 +226,7 @@
   @media (prefers-reduced-motion: reduce) { .node .card { animation: none; } }
 </style>
 </head>
-<body>
+<body class="night">
 <div id="lock">
   <div class="lockbox">
     <div class="lockmark">🫧</div>
@@ -241,7 +243,7 @@
     <span class="sp"></span>
     <button id="btnNew" type="button">＋ 新規</button>
     <button id="btnFish" type="button">魚眼</button>
-    <button id="btnGuide" type="button" class="on">□↔⬡</button>
+    <button id="btnGuide" type="button">□↔⬡</button>
     <button id="btnSearch" type="button">🔍</button>
     <button id="btnReload" type="button">🔄</button>
     <button id="btnReset" type="button">並びをリセット</button>
@@ -251,6 +253,7 @@
   <div id="crumbs"></div>
   <div id="status">読み込み中…</div>
   <div id="stage">
+    <div id="rocket">🚀</div>
     <div id="world">
       <svg id="guides"><g id="gWarp"></g></svg>
       <svg id="seams"><defs><filter id="soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="7"/></filter></defs></svg>
@@ -901,7 +904,7 @@ document.getElementById('btnFish').addEventListener('click', () => {
   document.getElementById('fishBar').classList.toggle('open', fisheyeOn);
   layoutAll();
 });
-let guideMode = 6;
+let guideMode = 4;
 document.getElementById('btnGuide').addEventListener('click', () => {
   guideMode = guideMode === 4 ? 6 : 4;
   document.getElementById('btnGuide').classList.toggle('on', guideMode === 6);
@@ -912,14 +915,7 @@ document.getElementById('fishRange').addEventListener('input', (e) => {
   fishK = (e.target.value / 100) * 1.6;
   if (fisheyeOn) layoutAll();
 });
-function applyTheme() {
-  const h = new Date().getHours();
-  const night = (h >= 17 || h < 5);
-  document.body.classList.toggle('night', night);
-  document.body.classList.toggle('day', !night);
-}
-applyTheme();
-setInterval(applyTheme, 60000);
+// 背景は宇宙（夜）で固定。昼夜の切り替えは廃止（2026-11-03）。
 function folderDropTarget(ev) {
   let w = toWorld(ev.clientX, ev.clientY);
   if (fisheyeOn) w = unwarpPoint(w.x, w.y);
@@ -1255,6 +1251,27 @@ function pgStep(t) {
   placePenguin();
   requestAnimationFrame(pgStep);
 }
+// ===== たまに飛ぶロケット =====
+const rocketEl = document.getElementById('rocket');
+function scheduleRocket() { setTimeout(flyRocket, 25000 + Math.random() * 50000); }
+function flyRocket() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  if (!w || !h || document.hidden) { scheduleRocket(); return; }
+  const left = Math.random() < 0.5;
+  const y0 = h * (0.45 + Math.random() * 0.4), y1 = y0 - h * (0.3 + Math.random() * 0.3);
+  const x0 = left ? -70 : w + 70, x1 = left ? w + 70 : -70;
+  const flip = left ? '' : ' scaleX(-1)';
+  const at = (t) => 'translate(' + (x0 + (x1 - x0) * t) + 'px,' + (y0 + (y1 - y0) * t) + 'px)' + flip;
+  const anim = rocketEl.animate([
+    { transform: at(0), opacity: 0 },
+    { transform: at(0.12), opacity: 1, offset: 0.12 },
+    { transform: at(0.88), opacity: 1, offset: 0.88 },
+    { transform: at(1), opacity: 0 }
+  ], { duration: 6500, easing: 'linear' });
+  anim.onfinish = () => scheduleRocket();
+}
+if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) scheduleRocket();
+
 load();
 </script>
 </body>
