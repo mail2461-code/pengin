@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>pengin ふわふわ</title>
+<title>🐧ふわふわ</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -11,7 +11,7 @@
   body { font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; background: #76766f; color: #33352f; overflow: hidden; }
   #app { display: flex; flex-direction: column; height: 100dvh; }
   header { padding: 10px 14px 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-  header .ttl { font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; font-size: 19px; letter-spacing: .04em; color: #f4f4ee; }
+  header .ttl { font-family: "Hiragino Maru Gothic ProN", "Hiragino Maru Gothic Pro", "M PLUS Rounded 1c", "Hiragino Sans", sans-serif; font-size: 20px; font-weight: 700; letter-spacing: .04em; color: #f4f4ee; }
   header .badge { font-size: 11px; background: #e7e2d2; border-radius: 999px; padding: 2px 9px; color: #6d6a5c; }
   header .sp { flex: 1; }
   header button, #detail button, #sheet button {
@@ -238,8 +238,8 @@
 </div>
 <div id="app">
   <header>
-    <span class="ttl">pengin ふわふわ</span>
-    <span class="badge">ふわふわ版</span>
+    <span class="ttl">🐧ふわふわ</span>
+    <span class="badge">よちよち本版</span>
     <span class="sp"></span>
     <button id="btnNew" type="button">＋ 新規</button>
     <button id="btnFish" type="button">魚眼</button>
@@ -325,7 +325,7 @@ function scheduleSettingsSave() {
   clearTimeout(layoutTimer);
   layoutTimer = setTimeout(saveLayoutRemote, 900);
 }
-const BUILD = '2026-11-03-0645';
+const BUILD = '2026-11-03-0700';
 const KEPOS_ID = 'a757f322-17fc-494a-9d77-cbe72fc06d26';
 
 const stage = document.getElementById('stage');
