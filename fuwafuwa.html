@@ -325,6 +325,7 @@ function scheduleSettingsSave() {
   clearTimeout(layoutTimer);
   layoutTimer = setTimeout(saveLayoutRemote, 900);
 }
+const BUILD = '2026-11-03-0645';
 const KEPOS_ID = 'a757f322-17fc-494a-9d77-cbe72fc06d26';
 
 const stage = document.getElementById('stage');
@@ -350,7 +351,7 @@ async function load() {
     layoutRowId = lr.id;
     try { settings = normalizeSettings(JSON.parse(lr.content || '{}')); } catch (e) {}
   }
-  statusEl.textContent = '全 ' + rows.length + ' ページ（並びは全端末で同期されます）';
+  statusEl.textContent = '全 ' + rows.length + ' ページ（並びは全端末で同期されます） ・ v' + BUILD;
   buildLevel('root');
   openView();
   renderGuides();
@@ -1271,6 +1272,17 @@ function flyRocket() {
   anim.onfinish = () => scheduleRocket();
 }
 if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) scheduleRocket();
+
+// ===== 新しい版が出ていたら1回だけ自動で読み直す（キャッシュで1段階遅れる対策） =====
+try {
+  fetch(location.pathname + '?_b=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => {
+    const m = t.match(/const BUILD = '([^']+)'/);
+    if (m && m[1] !== BUILD && sessionStorage.getItem('fuwaBuildReload') !== m[1]) {
+      sessionStorage.setItem('fuwaBuildReload', m[1]);
+      location.replace(location.pathname + '?v=' + encodeURIComponent(m[1]));
+    }
+  }).catch(() => {});
+} catch (e) {}
 
 load();
 </script>
