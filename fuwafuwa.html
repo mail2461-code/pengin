@@ -712,7 +712,7 @@ function openView() { initialView(false); }
 function initialView(anim) {
   const r = stage.getBoundingClientRect();
   const fitS = Math.min(r.width / WORLD_W, r.height / WORLD_H) * 1.02;
-  const s = Math.min(1.6, fitS * 2.1);
+  const s = Math.min(1.6, fitS * 2.0);
   const to = { s, x: r.width / 2 - (WORLD_W / 2) * s, y: r.height / 2 - (WORLD_H / 2) * s };
   if (anim) animateView(to, 380); else { view = to; applyView(); }
 }
