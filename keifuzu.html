@@ -38,6 +38,14 @@
     padding:6px 12px; font-size:13px; box-shadow:var(--shadow);
   }
   .hbtn.primary{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600;}
+  .hbtn.reload{
+    background:linear-gradient(135deg,#77a75a,#386641); color:#fff; border:none;
+    display:inline-flex; align-items:center; gap:6px; font-weight:700;
+    box-shadow:0 3px 10px rgba(56,102,65,.35);
+  }
+  .hbtn.reload svg{width:15px; height:15px;}
+  .hbtn.reload.spin svg{animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
   .hbtn:active{transform:scale(.97);}
   /* ---------- banner ---------- */
   #banner{
@@ -76,7 +84,7 @@
   .canvas svg{position:absolute; left:0; top:0; pointer-events:none;}
   .canvas svg path{fill:none; stroke:rgba(122,96,54,.45); stroke-width:2;}
   .node{
-    position:absolute; width:160px; height:48px;
+    position:absolute; width:160px; height:38px;
     display:flex; flex-direction:column; justify-content:center; gap:1px;
     background:var(--card); border:1px solid var(--line); border-radius:12px;
     padding:5px 9px; box-shadow:var(--shadow);
@@ -91,6 +99,7 @@
     width:13px; height:13px; border-radius:2px 11px 2px 11px;
     transform:rotate(-28deg);
   }
+  .node .syr{position:absolute; top:-15px; left:3px; width:24px; height:24px; z-index:3; pointer-events:none;}
   .node .nm{font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .node .n2{display:flex; align-items:center; gap:6px;}
   .node .bdg{font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
@@ -220,7 +229,7 @@
       <button class="hbtn primary" id="btnNew" type="button">＋ 新しい言葉</button>
       <button class="hbtn" id="btnTrash" type="button">🗑 ゴミ箱</button>
       <button class="hbtn" id="btnHistory" type="button">📜 履歴</button>
-      <button class="hbtn" id="btnReload" type="button">🔄 再読み込み</button>
+      <button class="hbtn reload" id="btnReload" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>更新</button>
     </div>
   </header>
 
@@ -247,7 +256,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-13-1749';
+const BUILD = '2026-11-13-1751';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
@@ -293,11 +302,11 @@ function ageDays(w){ return (Date.now() - new Date(w.vitalAt).getTime()) / DAY; 
 function health(w){ return Math.max(0, 1 - ageDays(w) / 7); }
 function daysLeft(w){ return Math.max(0, Math.floor(7 - ageDays(w))); }
 function healthColor(h){
-  // green(120) -> yellow(55) -> brown(24)
-  let hue;
-  if(h > 0.5) hue = 55 + (120 - 55) * ((h - 0.5) / 0.5);
-  else hue = 24 + (55 - 24) * (h / 0.5);
-  return 'hsl(' + hue.toFixed(0) + ',58%,42%)';
+  // 段階カラー（日目ベース）: 緑（〜2日目）→ 黄（3〜4日目）→ 赤（5〜6日目）→ 茶（7日目）
+  if(h > 5/7) return 'hsl(112,52%,38%)';
+  if(h > 3/7) return 'hsl(47,88%,46%)';
+  if(h > 1/7) return 'hsl(6,68%,44%)';
+  return 'hsl(24,45%,30%)';
 }
 const STATUS = {sprout:'🌱 芽', spreading:'🌿 広がり中', settled:'🌳 定着', onhold:'⏸ 保留'};
 const ASPECT = {action:'行動', background:'背景', both:'両方', unset:'未設定'};
@@ -418,20 +427,26 @@ function depthOf(w, byId, guard){
   if(!parents.length) return 0;
   return 1 + Math.max.apply(null, parents.map(p => depthOf(p, byId, guard + 1)));
 }
-const NODE_W = 160, NODE_H = 48, COL_STEP = 200, ROW_STEP = 58, CANVAS_PAD = 14;
+const NODE_W = 160, NODE_H = 38, COL_STEP = 200, ROW_STEP = 48, CANVAS_PAD = 18;
+const SYRINGE_SVG = '<svg viewBox="0 0 24 24"><g transform="rotate(45 12 12)">' +
+  '<rect x="9.6" y="2.6" width="5.2" height="1.9" rx="0.9" fill="#4a7ca5"/>' +
+  '<line x1="12.2" y1="4.5" x2="12.2" y2="7" stroke="#4a7ca5" stroke-width="1.6"/>' +
+  '<line x1="8" y1="7" x2="16.4" y2="7" stroke="#4a7ca5" stroke-width="1.6" stroke-linecap="round"/>' +
+  '<rect x="9.9" y="7" width="4.6" height="8.4" rx="1.6" fill="#dff1ff" stroke="#4a7ca5" stroke-width="1.1"/>' +
+  '<rect x="10.6" y="11.6" width="3.2" height="3.1" rx="1" fill="#57b25e"/>' +
+  '<line x1="12.2" y1="15.4" x2="12.2" y2="20.4" stroke="#8a8f96" stroke-width="1.3" stroke-linecap="round"/>' +
+  '</g></svg>';
 function nodeHTML(w, pos){
   const h = health(w);
-  const merge = (w.parentIds || []).length >= 2 ? ' 🌳合流' : '';
-  const leaf = h < 0.3 ? ' 🍂' : '';
+  const merge = (w.parentIds || []).length >= 2 ? '<span class="bdg">🌳合流</span>' : '';
   const sel = w.id === selectedId ? ' sel' : '';
-  const low = h < 0.3 ? ' low' : '';
   const style = pos ? ' style="left:' + Math.round(pos.x) + 'px;top:' + Math.round(pos.y) + 'px"' : '';
-  return '<div class="node' + sel + low + '" data-open="' + w.id + '"' + style + '>' +
-    '<span class="leaf" style="background:' + healthColor(h) + '"></span>' +
-    '<div class="n1"><span class="dot" style="background:' + healthColor(h) + '"></span>' +
-    '<span class="nm">' + esc(w.name) + '</span></div>' +
-    '<div class="n2"><span class="bdg">' + (STATUS[w.status] || '') + merge + leaf + '</span>' +
-    '<span class="days">あと' + daysLeft(w) + '日</span></div></div>';
+  const syr = (w.lastNutrientAt && (Date.now() - new Date(w.lastNutrientAt).getTime()) < DAY)
+    ? '<span class="syr">' + SYRINGE_SVG + '</span>' : '';
+  return '<div class="node' + sel + '" data-open="' + w.id + '"' + style + '>' +
+    '<span class="leaf" style="background:' + healthColor(h) + '"></span>' + syr +
+    '<div class="n1">' +
+    '<span class="nm">' + esc(w.name) + '</span>' + merge + '</div></div>';
 }
 function renderTree(){
   const box = $('#tree');
@@ -590,16 +605,15 @@ function renderDetail(w){
     : '<span style="color:var(--sub); font-size:13px">（まだない）</span>';
   const html =
     '<button class="x" type="button" data-close="1">✕</button>' +
-    '<h2><span class="dot" style="display:inline-block;width:13px;height:13px;border-radius:50%;background:' + healthColor(h) + ';margin-right:7px"></span>' + esc(w.name) + (h < 0.3 ? ' 🍂' : '') + '</h2>' +
+    '<h2>' + esc(w.name) + (h < 0.3 ? ' 🍂' : '') + '</h2>' +
     '<div class="meta">' +
       '<div class="row"><span class="k">系</span><span>' + esc(w.family || '—') + '</span></div>' +
-      '<div class="row"><span class="k">状態</span><span>' + (STATUS[w.status] || esc(w.status)) + '</span></div>' +
       '<div class="row"><span class="k">側面</span><span>' + (ASPECT[w.aspect] || esc(w.aspect)) + '</span></div>' +
       '<div class="row"><span class="k">生まれた日</span><span>' + esc(w.bornOn || '—') + (w.author ? '（' + esc(w.author) + '）' : '') + '</span></div>' +
       '<div class="row"><span class="k">元気になった日</span><span>' + fmtDT(w.vitalAt) + '</span></div>' +
     '</div>' +
     '<div class="bar"><div style="width:' + pct + '%;background:' + healthColor(h) + '"></div></div>' +
-    '<div class="barlabel">元気 ' + pct + '% ・ あと ' + daysLeft(w) + ' 日で枯れちゃう</div>' +
+    '<div class="barlabel">元気 ' + pct + '%</div>' +
     (w.memo ? '<div class="memo">' + esc(w.memo) + '</div>' : '') +
     '<div class="seclabel">親</div><div class="chips">' + parentChips + '</div>' +
     '<div class="seclabel">子</div><div class="chips">' + kidChips + '</div>' +
@@ -631,6 +645,7 @@ async function detailAction(act, id){
       const t = wordById(id);
       state.stock.nutrient -= 1;
       t.vitalAt = nowISO();
+      t.lastNutrientAt = t.vitalAt;
       addHistory(myName, '栄養剤', t.name, '💊 元気を取り戻した（残り' + state.stock.nutrient + '）');
     }, '💊 ' + w.name + ' に栄養剤をあげたよ');
     return;
@@ -675,7 +690,6 @@ function openWordForm(opts){
       '<div class="frow"><label>名前 *</label><input type="text" id="fName" value="' + (editing ? esc(editing.name) : '') + '" required></div>' +
       '<div class="frow"><label>メモ</label><textarea id="fMemo">' + (editing ? esc(editing.memo) : '') + '</textarea></div>' +
       '<div class="frow"><label>系（family）</label><input type="text" id="fFamily" value="' + (editing ? esc(editing.family) : '') + '" placeholder="例：△、GY▽XA、その他"></div>' +
-      '<div class="frow"><label>状態</label><select id="fStatus">' + optionsHTML(STATUS, editing ? editing.status : 'sprout') + '</select></div>' +
       '<div class="frow"><label>側面</label><select id="fAspect">' + optionsHTML(ASPECT, editing ? editing.aspect : 'unset') + '</select></div>' +
       '<div class="frow"><label>親（複数えらべる。なし＝根っこ）</label>' + parentChecklist(presetParents, editing ? editing.id : null) + '</div>' +
       '<div class="acts"><button class="abtn green" type="submit">' + (editing ? '保存する' : '登録する 🌱') + '</button></div>' +
@@ -695,7 +709,6 @@ function openWordForm(opts){
       name: name,
       memo: $('#fMemo').value,
       family: $('#fFamily').value.trim(),
-      status: $('#fStatus').value,
       aspect: $('#fAspect').value,
       parentIds: parentIds
     };
@@ -713,7 +726,7 @@ function openWordForm(opts){
         const t = nowISO();
         state.words.push({
           id: nid, name: fields.name, parentIds: fields.parentIds,
-          family: fields.family, status: fields.status, aspect: fields.aspect,
+          family: fields.family, status: 'sprout', aspect: fields.aspect,
           memo: fields.memo, author: myName, bornOn: jstToday(),
           vitalAt: t, trashed: false, trashedAt: null
         });
@@ -817,6 +830,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#btnTrash').addEventListener('click', openTrash);
   $('#btnHistory').addEventListener('click', openHistory);
   $('#btnReload').addEventListener('click', async () => {
+    const rb = $('#btnReload'); rb.classList.add('spin');
     selectedId = null; hideDetailPane(); showMain();
     try{
       await loadState();
@@ -825,6 +839,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if(changed){ try{ await saveState(); }catch(e){} }
       showBanner('再読み込みしたよ 🌿', false);
     }catch(e){ showBanner(e.message || '読み込めなかったよ', true); }
+    finally{ rb.classList.remove('spin'); }
   });
   $('#scrim').addEventListener('click', () => { selectedId = null; closeSheet(); renderTreeSel(); });
   document.addEventListener('click', (e) => {
