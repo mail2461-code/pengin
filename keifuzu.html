@@ -63,21 +63,35 @@
     #scrim{display:none !important;}
   }
   .hint{font-size:12.5px; color:var(--sub); padding:2px 6px 10px;}
-  /* ---------- tree ---------- */
+  /* ---------- tree (branch layout: roots left, descendants right) ---------- */
+  #tree{
+    overflow:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
+    border:1px solid var(--line); border-radius:14px;
+    background:
+      radial-gradient(circle, #eadfc0 1px, transparent 1.3px) 0 0/22px 22px,
+      var(--card);
+    max-height:68vh;
+  }
+  .canvas{position:relative;}
+  .canvas svg{position:absolute; left:0; top:0; pointer-events:none;}
+  .canvas svg path{fill:none; stroke:rgba(122,96,54,.45); stroke-width:2;}
   .node{
-    display:flex; align-items:center; gap:7px;
+    position:absolute; width:160px; height:48px;
+    display:flex; flex-direction:column; justify-content:center; gap:1px;
     background:var(--card); border:1px solid var(--line); border-radius:12px;
-    padding:9px 10px; margin:5px 0; box-shadow:var(--shadow);
+    padding:5px 9px; box-shadow:var(--shadow);
     cursor:pointer; user-select:none;
   }
-  .node:active{transform:scale(.99);}
+  .node:active{transform:scale(.98);}
   .node.sel{outline:2px solid var(--accent); outline-offset:-1px;}
+  .node .n1{display:flex; align-items:center; gap:6px; min-width:0;}
   .node .dot{flex:0 0 auto; width:12px; height:12px; border-radius:50%; border:1px solid rgba(0,0,0,.12);}
-  .node .nm{font-weight:600; word-break:break-word;}
-  .node .bdg{font-size:12px; white-space:nowrap;}
-  .node .days{margin-left:auto; font-size:11.5px; color:var(--sub); white-space:nowrap; font-variant-numeric:tabular-nums;}
+  .node .sprout{flex:0 0 auto; font-size:12px; line-height:1;}
+  .node .nm{font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .node .n2{display:flex; align-items:center; gap:6px;}
+  .node .bdg{font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .node .days{margin-left:auto; font-size:11px; color:var(--sub); white-space:nowrap; font-variant-numeric:tabular-nums;}
   .node.low .days{color:var(--danger); font-weight:600;}
-  .kids{margin-left:16px; border-left:2px dotted #d8cda6; padding-left:8px;}
   .empty{padding:26px 14px; text-align:center; color:var(--sub); font-size:14px;}
   /* ---------- sheet / detail ---------- */
   #scrim{
@@ -229,7 +243,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-13-1725';
+const BUILD = '2026-11-13-1746';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
@@ -400,17 +414,19 @@ function depthOf(w, byId, guard){
   if(!parents.length) return 0;
   return 1 + Math.max.apply(null, parents.map(p => depthOf(p, byId, guard + 1)));
 }
-function nodeHTML(w){
+const NODE_W = 160, NODE_H = 48, COL_STEP = 200, ROW_STEP = 58, CANVAS_PAD = 14;
+function nodeHTML(w, pos){
   const h = health(w);
   const merge = (w.parentIds || []).length >= 2 ? ' 🌳合流' : '';
   const leaf = h < 0.3 ? ' 🍂' : '';
   const sel = w.id === selectedId ? ' sel' : '';
   const low = h < 0.3 ? ' low' : '';
-  return '<div class="node' + sel + low + '" data-open="' + w.id + '">' +
-    '<span class="dot" style="background:' + healthColor(h) + '"></span>' +
-    '<span class="nm">' + esc(w.name) + '</span>' +
-    '<span class="bdg">' + (STATUS[w.status] || '') + merge + leaf + '</span>' +
-    '<span class="days">あと' + daysLeft(w) + '日</span></div>';
+  const style = pos ? ' style="left:' + Math.round(pos.x) + 'px;top:' + Math.round(pos.y) + 'px"' : '';
+  return '<div class="node' + sel + low + '" data-open="' + w.id + '"' + style + '>' +
+    '<div class="n1"><span class="dot" style="background:' + healthColor(h) + '"></span>' +
+    '<span class="sprout">🌱</span><span class="nm">' + esc(w.name) + '</span></div>' +
+    '<div class="n2"><span class="bdg">' + (STATUS[w.status] || '') + merge + leaf + '</span>' +
+    '<span class="days">あと' + daysLeft(w) + '日</span></div></div>';
 }
 function renderTree(){
   const box = $('#tree');
@@ -420,7 +436,6 @@ function renderTree(){
     return;
   }
   const byId = new Map(state.words.map(w => [w.id, w]));
-  const kids = childrenMap();
   // primary parent = living parent with greatest depth (deepest); ties -> smallest id
   function primaryParent(w){
     const ps = (w.parentIds || []).map(id => byId.get(id)).filter(p => p && !p.trashed);
@@ -440,18 +455,47 @@ function renderTree(){
   });
   roots.sort((a,b) => a.id - b.id);
   childOf.forEach(l => l.sort((a,b) => a.id - b.id));
-  const seen = new Set();
-  function renderNode(w){
-    if(seen.has(w.id)) return '';
-    seen.add(w.id);
-    let html = nodeHTML(w);
+  // layout: DFS from roots; leaves take row slots, parents center on their displayed children
+  const pos = new Map();
+  const placed = new Set();
+  let nextRow = 0;
+  function place(w, guard){
+    if(placed.has(w.id) || guard > 200) return;
+    placed.add(w.id);
     const cs = childOf.get(w.id) || [];
-    if(cs.length) html += '<div class="kids">' + cs.map(renderNode).join('') + '</div>';
-    return html;
+    cs.forEach(c => place(c, guard + 1));
+    const ys = cs.filter(c => pos.has(c.id)).map(c => pos.get(c.id).rowU);
+    const rowU = ys.length ? ys.reduce((a,b) => a + b, 0) / ys.length : nextRow++;
+    pos.set(w.id, {depth: depthOf(w, byId), rowU: rowU});
   }
-  let html = roots.map(renderNode).join('');
-  // safety: anything not reached (cycles etc.) shown as root
-  alive.forEach(w => { if(!seen.has(w.id)) html += renderNode(w); });
+  roots.forEach(r => place(r, 0));
+  // safety: anything not reached (cycles etc.) gets its own slot at its depth
+  alive.forEach(w => { if(!pos.has(w.id)) pos.set(w.id, {depth: depthOf(w, byId), rowU: nextRow++}); });
+  let maxDepth = 0, maxRow = 0;
+  pos.forEach(p => { maxDepth = Math.max(maxDepth, p.depth); maxRow = Math.max(maxRow, p.rowU); });
+  const cw = CANVAS_PAD * 2 + maxDepth * COL_STEP + NODE_W;
+  const ch = CANVAS_PAD * 2 + maxRow * ROW_STEP + NODE_H;
+  function xy(w){
+    const p = pos.get(w.id);
+    return {x: CANVAS_PAD + p.depth * COL_STEP, y: CANVAS_PAD + p.rowU * ROW_STEP};
+  }
+  // edges: every living parent -> child, as branch-like cubic beziers
+  let paths = '';
+  alive.forEach(w => {
+    (w.parentIds || []).forEach(pid => {
+      const p = byId.get(pid);
+      if(!p || p.trashed || !pos.has(p.id)) return;
+      const a = xy(p), b = xy(w);
+      const x1 = a.x + NODE_W, y1 = a.y + NODE_H / 2;
+      const x2 = b.x, y2 = b.y + NODE_H / 2;
+      const dx = Math.max(28, Math.abs(x2 - x1) / 2);
+      paths += '<path d="M ' + x1 + ' ' + y1 + ' C ' + (x1 + dx) + ' ' + y1 + ', ' + (x2 - dx) + ' ' + y2 + ', ' + x2 + ' ' + y2 + '"/>';
+    });
+  });
+  let html = '<div class="canvas" style="width:' + Math.round(cw) + 'px;height:' + Math.round(ch) + 'px">' +
+    '<svg width="' + Math.round(cw) + '" height="' + Math.round(ch) + '">' + paths + '</svg>';
+  alive.forEach(w => { html += nodeHTML(w, xy(w)); });
+  html += '</div>';
   box.innerHTML = html;
 }
 
