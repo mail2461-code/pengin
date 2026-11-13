@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>🌳 系譜図ガーデン</title>
+<style>
+  :root{
+    --bg:#f7f3e6; --card:#fffdf6; --ink:#3a3226; --sub:#8a7d63;
+    --line:#e5dcc3; --green:#4caf50; --accent:#6a994e; --accent2:#386641;
+    --brown:#a26744; --danger:#b3402a; --gold:#e9c46a;
+    --shadow:0 2px 10px rgba(90,70,30,.12);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+    background:linear-gradient(180deg,#fbf7ea 0%, var(--bg) 30%);
+    color:var(--ink); font-size:15px; line-height:1.5;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  button{font:inherit; cursor:pointer;}
+  input,select,textarea{font:inherit; color:var(--ink);}
+  /* ---------- header ---------- */
+  header{
+    position:sticky; top:0; z-index:30;
+    background:rgba(251,247,234,.94); backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);
+    padding:10px 12px 8px;
+  }
+  .h-title{font-size:19px; font-weight:700; display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;}
+  .h-title .count{font-size:12px; color:var(--sub); font-weight:500;}
+  .h-stock{display:flex; gap:10px; font-size:13px; margin-top:4px; color:var(--ink); flex-wrap:wrap;}
+  .h-stock b{font-variant-numeric:tabular-nums;}
+  .h-btns{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;}
+  .hbtn{
+    border:1px solid var(--line); background:var(--card); border-radius:999px;
+    padding:6px 12px; font-size:13px; box-shadow:var(--shadow);
+  }
+  .hbtn.primary{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600;}
+  .hbtn:active{transform:scale(.97);}
+  /* ---------- banner ---------- */
+  #banner{
+    display:none; margin:10px 12px 0; padding:9px 12px; border-radius:10px;
+    background:#fdeeda; border:1px solid #eec27f; color:#7a4b12; font-size:13.5px;
+  }
+  #banner.error{background:#fbe4e0; border-color:#e2a294; color:#7c2415;}
+  #banner.show{display:block;}
+  /* ---------- layout ---------- */
+  #layout{display:block;}
+  #treePane{padding:10px 10px 30px;}
+  @media (min-width:900px){
+    #layout{display:flex; align-items:flex-start; gap:14px; max-width:1200px; margin:0 auto;}
+    #treePane{flex:1 1 auto; min-width:0;}
+    #detailPane{
+      flex:0 0 380px; position:sticky; top:118px; max-height:calc(100vh - 130px);
+      overflow-y:auto; padding:10px 10px 30px 0;
+    }
+    #detailPane .sheet{
+      position:static !important; transform:none !important; border-radius:16px !important;
+      max-height:none !important; box-shadow:var(--shadow);
+    }
+    #scrim{display:none !important;}
+  }
+  .hint{font-size:12.5px; color:var(--sub); padding:2px 6px 10px;}
+  /* ---------- tree ---------- */
+  .node{
+    display:flex; align-items:center; gap:7px;
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:9px 10px; margin:5px 0; box-shadow:var(--shadow);
+    cursor:pointer; user-select:none;
+  }
+  .node:active{transform:scale(.99);}
+  .node.sel{outline:2px solid var(--accent); outline-offset:-1px;}
+  .node .dot{flex:0 0 auto; width:12px; height:12px; border-radius:50%; border:1px solid rgba(0,0,0,.12);}
+  .node .nm{font-weight:600; word-break:break-word;}
+  .node .bdg{font-size:12px; white-space:nowrap;}
+  .node .days{margin-left:auto; font-size:11.5px; color:var(--sub); white-space:nowrap; font-variant-numeric:tabular-nums;}
+  .node.low .days{color:var(--danger); font-weight:600;}
+  .kids{margin-left:16px; border-left:2px dotted #d8cda6; padding-left:8px;}
+  .empty{padding:26px 14px; text-align:center; color:var(--sub); font-size:14px;}
+  /* ---------- sheet / detail ---------- */
+  #scrim{
+    display:none; position:fixed; inset:0; background:rgba(50,40,20,.38); z-index:40;
+  }
+  #scrim.show{display:block;}
+  .sheet{
+    position:fixed; left:0; right:0; bottom:0; z-index:50;
+    background:var(--card); border-radius:18px 18px 0 0;
+    max-height:86vh; overflow-y:auto; padding:16px 16px calc(18px + env(safe-area-inset-bottom));
+    transform:translateY(105%); transition:transform .25s ease;
+    box-shadow:0 -6px 24px rgba(60,45,10,.18);
+  }
+  .sheet.show{transform:translateY(0);}
+  .sheet h2{margin:0 34px 6px 0; font-size:19px;}
+  .x{
+    position:absolute; top:10px; right:12px; border:none; background:#f0e8d2;
+    width:30px; height:30px; border-radius:50%; font-size:15px; line-height:1;
+  }
+  .meta{font-size:13px; color:var(--ink);}
+  .meta .row{display:flex; gap:8px; padding:3px 0; border-bottom:1px dashed #eee3c4;}
+  .meta .k{flex:0 0 92px; color:var(--sub);}
+  .memo{
+    white-space:pre-wrap; word-break:break-word; background:#fbf6e3;
+    border:1px solid var(--line); border-radius:10px; padding:9px 11px; margin:10px 0; font-size:14px;
+  }
+  .bar{height:9px; border-radius:99px; background:#eee3c4; overflow:hidden; margin:6px 0 2px;}
+  .bar > div{height:100%; border-radius:99px;}
+  .barlabel{font-size:12px; color:var(--sub);}
+  .chips{display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 8px;}
+  .chip{
+    border:1px solid var(--line); background:#fff; border-radius:999px;
+    padding:4px 11px; font-size:13px; box-shadow:var(--shadow);
+  }
+  .chip:active{transform:scale(.96);}
+  .seclabel{font-size:12px; color:var(--sub); margin-top:10px;}
+  .acts{display:flex; flex-direction:column; gap:8px; margin-top:14px;}
+  .abtn{
+    border:1px solid var(--line); background:#fff; border-radius:12px;
+    padding:11px 12px; font-size:15px; text-align:center; box-shadow:var(--shadow);
+  }
+  .abtn.green{background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600;}
+  .abtn.danger{background:#fdf0ec; border-color:#e5b3a6; color:var(--danger);}
+  .abtn:disabled{opacity:.42; box-shadow:none;}
+  .abtn:active{transform:scale(.98);}
+  /* ---------- forms ---------- */
+  form .frow{margin:10px 0;}
+  form label{display:block; font-size:12.5px; color:var(--sub); margin-bottom:4px;}
+  form input[type=text], form textarea, form select{
+    width:100%; border:1px solid var(--line); border-radius:10px; padding:9px 10px;
+    background:#fff; font-size:15px;
+  }
+  form textarea{min-height:74px; resize:vertical;}
+  .parentlist{
+    max-height:170px; overflow-y:auto; border:1px solid var(--line); border-radius:10px;
+    background:#fff; padding:6px 8px;
+  }
+  .parentlist label{
+    display:flex; align-items:center; gap:8px; font-size:14px; color:var(--ink);
+    padding:5px 2px; margin:0; border-bottom:1px dashed #f0e6c8;
+  }
+  .parentlist label:last-child{border-bottom:none;}
+  .parentlist input{width:18px; height:18px;}
+  /* ---------- list screens (trash/history) ---------- */
+  .lrow{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:10px 12px; margin:6px 10px; box-shadow:var(--shadow); font-size:13.5px;
+  }
+  .lrow .t{font-weight:600; font-size:14.5px;}
+  .lrow .s{color:var(--sub); font-size:12px;}
+  .lrow .restore{margin-top:7px;}
+  .viewhead{display:flex; align-items:center; gap:10px; padding:12px 12px 2px;}
+  .viewhead .back{border:1px solid var(--line); background:var(--card); border-radius:999px; padding:5px 12px; font-size:13px;}
+  .viewhead h3{margin:0; font-size:16px;}
+  /* ---------- gate ---------- */
+  #gate{
+    position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(180deg,#fdfaf0,#f3edd8); padding:20px;
+  }
+  #gate .box{
+    background:var(--card); border:1px solid var(--line); border-radius:18px;
+    box-shadow:var(--shadow); padding:24px 20px; width:100%; max-width:360px; text-align:center;
+  }
+  #gate h1{font-size:21px; margin:0 0 4px;}
+  #gate p{color:var(--sub); font-size:13px; margin:0 0 14px;}
+  #gate input{
+    width:100%; border:1px solid var(--line); border-radius:10px; padding:11px;
+    font-size:16px; margin:6px 0; background:#fff; text-align:center;
+  }
+  #gate button{
+    width:100%; margin-top:10px; background:var(--accent); color:#fff; border:none;
+    border-radius:12px; padding:12px; font-size:16px; font-weight:700;
+  }
+  #gate .err{color:var(--danger); font-size:13px; min-height:18px; margin-top:8px;}
+  footer{text-align:center; color:var(--sub); font-size:11px; padding:14px 0 20px;}
+</style>
+</head>
+<body>
+
+<!-- ======== gate ======== -->
+<div id="gate" style="display:none">
+  <div class="box">
+    <h1>🌳 系譜図ガーデン</h1>
+    <p>名前とパスワードで入ってね。<br>名前は変更履歴のためだけに使うよ。</p>
+    <input id="gateName" type="text" placeholder="名前（例：ぺん銀）" autocomplete="off">
+    <input id="gatePass" type="password" inputmode="numeric" placeholder="パスワード" autocomplete="off">
+    <button id="gateBtn" type="button">入る 🌱</button>
+    <div class="err" id="gateErr"></div>
+  </div>
+</div>
+
+<!-- ======== app ======== -->
+<div id="app" style="display:none">
+  <header>
+    <div class="h-title">🌳 系譜図ガーデン <span class="count" id="hCount"></span></div>
+    <div class="h-stock">
+      <span>💊 栄養剤 × <b id="hNut">-</b></span>
+      <span>☠️ 除草剤 × <b id="hHerb">-</b></span>
+      <span id="hWho" style="color:var(--sub)"></span>
+    </div>
+    <div class="h-btns">
+      <button class="hbtn primary" id="btnNew" type="button">＋ 新しい言葉</button>
+      <button class="hbtn" id="btnTrash" type="button">🗑 ゴミ箱</button>
+      <button class="hbtn" id="btnHistory" type="button">📜 履歴</button>
+      <button class="hbtn" id="btnReload" type="button">🔄 再読み込み</button>
+    </div>
+  </header>
+
+  <div id="banner"></div>
+
+  <main id="mainView">
+    <div id="layout">
+      <section id="treePane">
+        <div class="hint">言葉は7日間、子が生まれないと枯れてしまう。タップで詳細、栄養剤で元気に。</div>
+        <div id="tree"></div>
+      </section>
+      <aside id="detailPane"></aside>
+    </div>
+  </main>
+
+  <section id="subView" style="display:none"></section>
+
+  <footer>build <span id="buildStr"></span></footer>
+</div>
+
+<div id="scrim"></div>
+<div id="sheetRoot"></div>
+
+<script>
+"use strict";
+/* ================= config ================= */
+const BUILD = '2026-11-13-1725';
+const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
+const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
+const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
+const DAY = 86400000;
+const PASS = '2461';
+const $ = (s, el) => (el || document).querySelector(s);
+
+/* ================= state ================= */
+let state = null;        // garden state JSON
+let baseContent = null;  // content string as loaded (conflict check)
+let myName = localStorage.getItem('keifuzu_name') || '';
+let selectedId = null;
+let booted = false;
+
+/* ================= helpers ================= */
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function nowISO(){ return new Date().toISOString(); }
+function jstToday(){
+  const p = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  return p; // YYYY-MM-DD
+}
+function jstDateOf(iso){
+  try{
+    return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(iso));
+  }catch(e){ return String(iso||'').slice(0,10); }
+}
+function fmtDT(iso){
+  if(!iso) return '—';
+  try{
+    return new Intl.DateTimeFormat('ja-JP',{timeZone:'Asia/Tokyo',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(iso));
+  }catch(e){ return String(iso).slice(0,16); }
+}
+function daysBetweenJST(a, b){ // a,b = 'YYYY-MM-DD'
+  const pa = a.split('-').map(Number), pb = b.split('-').map(Number);
+  const da = Date.UTC(pa[0], pa[1]-1, pa[2]), db = Date.UTC(pb[0], pb[1]-1, pb[2]);
+  return Math.round((db - da) / DAY);
+}
+function ageDays(w){ return (Date.now() - new Date(w.vitalAt).getTime()) / DAY; }
+function health(w){ return Math.max(0, 1 - ageDays(w) / 7); }
+function daysLeft(w){ return Math.max(0, Math.floor(7 - ageDays(w))); }
+function healthColor(h){
+  // green(120) -> yellow(55) -> brown(24)
+  let hue;
+  if(h > 0.5) hue = 55 + (120 - 55) * ((h - 0.5) / 0.5);
+  else hue = 24 + (55 - 24) * (h / 0.5);
+  return 'hsl(' + hue.toFixed(0) + ',58%,42%)';
+}
+const STATUS = {sprout:'🌱 芽', spreading:'🌿 広がり中', settled:'🌳 定着', onhold:'⏸ 保留'};
+const ASPECT = {action:'行動', background:'背景', both:'両方', unset:'未設定'};
+function wordById(id){ return state.words.find(w => w.id === id) || null; }
+function aliveWords(){ return state.words.filter(w => !w.trashed); }
+function addHistory(by, action, word, detail){
+  state.history.push({at: nowISO(), by: by, action: action, word: word || '', detail: detail || ''});
+}
+
+let bannerTimer = null;
+function showBanner(msg, isError){
+  const b = $('#banner');
+  b.textContent = msg;
+  b.className = 'show' + (isError ? ' error' : '');
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(() => { b.className = ''; }, 6000);
+}
+
+/* ================= supabase ================= */
+async function sbFetch(){
+  const url = SB_URL + '/rest/v1/wiki_pages?id=eq.' + ROW_ID + '&select=content,updated_at';
+  const res = await fetch(url, {headers:{'apikey':SB_KEY, 'Authorization':'Bearer ' + SB_KEY}});
+  if(!res.ok) throw new Error('読込に失敗したよ（' + res.status + '）');
+  const rows = await res.json();
+  if(!rows.length) throw new Error('データの行が見つからないよ');
+  return rows[0].content;
+}
+function normalize(st){
+  st.version = st.version || 1;
+  st.words = Array.isArray(st.words) ? st.words : [];
+  st.nextId = st.nextId || (st.words.reduce((m,w)=>Math.max(m,w.id),0) + 1);
+  st.stock = st.stock || {nutrient:10, herbicide:10, lastRefill:jstToday()};
+  if(typeof st.stock.nutrient !== 'number') st.stock.nutrient = 10;
+  if(typeof st.stock.herbicide !== 'number') st.stock.herbicide = 10;
+  if(!st.stock.lastRefill) st.stock.lastRefill = jstToday();
+  st.history = Array.isArray(st.history) ? st.history : [];
+  return st;
+}
+async function loadState(){
+  const content = await sbFetch();
+  baseContent = content;
+  state = normalize(JSON.parse(content));
+}
+/* returns true if anything changed */
+function autoProcess(){
+  let changed = false;
+  const today = jstToday();
+  // 1) refill
+  const elapsed = daysBetweenJST(state.stock.lastRefill, today);
+  if(elapsed > 0){
+    const n = Math.min(10, state.stock.nutrient + elapsed);
+    const h = Math.min(10, state.stock.herbicide + elapsed);
+    if(n !== state.stock.nutrient || h !== state.stock.herbicide) changed = true;
+    state.stock.nutrient = n; state.stock.herbicide = h;
+    state.stock.lastRefill = today;
+    changed = true;
+  }
+  // 2) wither sweep
+  const t = Date.now();
+  state.words.forEach(w => {
+    if(!w.trashed && (t - new Date(w.vitalAt).getTime()) / DAY >= 7){
+      w.trashed = true; w.trashedAt = nowISO();
+      addHistory('（自然）', '枯れた', w.name, '7日間、子が生まれなかった');
+      changed = true;
+    }
+  });
+  return changed;
+}
+async function saveState(){
+  // conflict check: re-GET and compare
+  const fresh = await sbFetch();
+  if(fresh !== baseContent){
+    showBanner('誰かが更新したみたい。再読み込みしてね', true);
+    throw new Error('conflict');
+  }
+  const body = JSON.stringify(state);
+  const res = await fetch(SB_URL + '/rest/v1/wiki_pages?id=eq.' + ROW_ID, {
+    method:'PATCH',
+    headers:{
+      'apikey':SB_KEY, 'Authorization':'Bearer ' + SB_KEY,
+      'Content-Type':'application/json', 'Prefer':'return=minimal'
+    },
+    body: JSON.stringify({content: body})
+  });
+  if(!res.ok) throw new Error('保存に失敗したよ（' + res.status + '）');
+  baseContent = body;
+}
+/* mutate -> save -> render, with rollback-ish error note */
+async function commit(mutFn, okMsg){
+  try{
+    mutFn();
+    await saveState();
+    render();
+    if(okMsg) showBanner(okMsg, false);
+    return true;
+  }catch(e){
+    if(e.message !== 'conflict') showBanner(e.message || 'うまくいかなかったよ', true);
+    try{ await loadState(); render(); }catch(_){}
+    return false;
+  }
+}
+/* ================= tree ================= */
+function childrenMap(){
+  const map = new Map();
+  aliveWords().forEach(w => {
+    (w.parentIds || []).forEach(pid => {
+      if(!map.has(pid)) map.set(pid, []);
+      map.get(pid).push(w);
+    });
+  });
+  map.forEach(list => list.sort((a,b) => a.id - b.id));
+  return map;
+}
+function depthOf(w, byId, guard){
+  guard = guard || 0;
+  if(guard > 60) return 0;
+  const parents = (w.parentIds || []).map(id => byId.get(id)).filter(p => p && !p.trashed);
+  if(!parents.length) return 0;
+  return 1 + Math.max.apply(null, parents.map(p => depthOf(p, byId, guard + 1)));
+}
+function nodeHTML(w){
+  const h = health(w);
+  const merge = (w.parentIds || []).length >= 2 ? ' 🌳合流' : '';
+  const leaf = h < 0.3 ? ' 🍂' : '';
+  const sel = w.id === selectedId ? ' sel' : '';
+  const low = h < 0.3 ? ' low' : '';
+  return '<div class="node' + sel + low + '" data-open="' + w.id + '">' +
+    '<span class="dot" style="background:' + healthColor(h) + '"></span>' +
+    '<span class="nm">' + esc(w.name) + '</span>' +
+    '<span class="bdg">' + (STATUS[w.status] || '') + merge + leaf + '</span>' +
+    '<span class="days">あと' + daysLeft(w) + '日</span></div>';
+}
+function renderTree(){
+  const box = $('#tree');
+  const alive = aliveWords();
+  if(!alive.length){
+    box.innerHTML = '<div class="empty">まだ言葉がないよ。<br>「＋ 新しい言葉」から種をまこう 🌱</div>';
+    return;
+  }
+  const byId = new Map(state.words.map(w => [w.id, w]));
+  const kids = childrenMap();
+  // primary parent = living parent with greatest depth (deepest); ties -> smallest id
+  function primaryParent(w){
+    const ps = (w.parentIds || []).map(id => byId.get(id)).filter(p => p && !p.trashed);
+    if(!ps.length) return null;
+    ps.sort((a,b) => (depthOf(b, byId) - depthOf(a, byId)) || (a.id - b.id));
+    return ps[0];
+  }
+  const childOf = new Map();
+  const roots = [];
+  alive.forEach(w => {
+    const pp = primaryParent(w);
+    if(!pp){ roots.push(w); }
+    else{
+      if(!childOf.has(pp.id)) childOf.set(pp.id, []);
+      childOf.get(pp.id).push(w);
+    }
+  });
+  roots.sort((a,b) => a.id - b.id);
+  childOf.forEach(l => l.sort((a,b) => a.id - b.id));
+  const seen = new Set();
+  function renderNode(w){
+    if(seen.has(w.id)) return '';
+    seen.add(w.id);
+    let html = nodeHTML(w);
+    const cs = childOf.get(w.id) || [];
+    if(cs.length) html += '<div class="kids">' + cs.map(renderNode).join('') + '</div>';
+    return html;
+  }
+  let html = roots.map(renderNode).join('');
+  // safety: anything not reached (cycles etc.) shown as root
+  alive.forEach(w => { if(!seen.has(w.id)) html += renderNode(w); });
+  box.innerHTML = html;
+}
+
+/* ================= header / views ================= */
+function render(){
+  if(!state) return;
+  $('#hCount').textContent = '🌱 ' + aliveWords().length + '語';
+  $('#hNut').textContent = state.stock.nutrient;
+  $('#hHerb').textContent = state.stock.herbicide;
+  $('#hWho').textContent = myName ? '（' + myName + '）' : '';
+  const inSub = $('#subView').style.display !== 'none';
+  if(!inSub) renderTree();
+  if(selectedId != null){
+    const w = wordById(selectedId);
+    if(w && !w.trashed) renderDetail(w);
+    else closeSheet();
+  }
+}
+function showMain(){
+  $('#subView').style.display = 'none';
+  $('#mainView').style.display = '';
+  render();
+}
+function showSub(html){
+  const sv = $('#subView');
+  sv.innerHTML = html;
+  sv.style.display = '';
+  $('#mainView').style.display = 'none';
+  window.scrollTo(0, 0);
+}
+
+/* ================= sheet ================= */
+function openSheet(html){
+  const root = $('#sheetRoot');
+  root.innerHTML = '<div class="sheet" id="sheet">' + html + '</div>';
+  $('#scrim').classList.add('show');
+  requestAnimationFrame(() => { const s = $('#sheet'); if(s) s.classList.add('show'); });
+}
+function closeSheet(){
+  const s = $('#sheet');
+  if(s){ s.classList.remove('show'); setTimeout(() => { $('#sheetRoot').innerHTML = ''; }, 240); }
+  $('#scrim').classList.remove('show');
+  selectedId = null;
+  renderTreeSel();
+}
+function renderTreeSel(){
+  document.querySelectorAll('.node').forEach(n => {
+    n.classList.toggle('sel', Number(n.dataset.open) === selectedId);
+  });
+}
+/* on wide screens the detail lives in the right pane instead of a sheet */
+function isWide(){ return window.matchMedia('(min-width: 900px)').matches; }
+function showDetailPane(html){
+  if(isWide()){
+    $('#detailPane').innerHTML = '<div class="sheet" style="position:static">' + html + '</div>';
+    $('#scrim').classList.remove('show');
+  }else{
+    openSheet(html);
+  }
+}
+function hideDetailPane(){
+  if(isWide()){ $('#detailPane').innerHTML = ''; }
+  else closeSheet();
+}
+
+/* ================= detail ================= */
+function openWord(id){
+  const w = wordById(id);
+  if(!w) return;
+  selectedId = id;
+  renderDetail(w);
+  renderTreeSel();
+}
+function renderDetail(w){
+  const h = health(w);
+  const byId = new Map(state.words.map(x => [x.id, x]));
+  const parents = (w.parentIds || []).map(id => byId.get(id)).filter(Boolean);
+  const kids = aliveWords().filter(x => (x.parentIds || []).includes(w.id));
+  const pct = Math.round(h * 100);
+  const parentChips = parents.length
+    ? parents.map(p => p.trashed
+        ? '<span class="chip" style="opacity:.55">🍂 ' + esc(p.name) + '（ゴミ箱）</span>'
+        : '<button class="chip" type="button" data-open="' + p.id + '">⬆ ' + esc(p.name) + '</button>').join('')
+    : '<span style="color:var(--sub); font-size:13px">（根っこ）</span>';
+  const kidChips = kids.length
+    ? kids.map(c => '<button class="chip" type="button" data-open="' + c.id + '">⬇ ' + esc(c.name) + '</button>').join('')
+    : '<span style="color:var(--sub); font-size:13px">（まだない）</span>';
+  const html =
+    '<button class="x" type="button" data-close="1">✕</button>' +
+    '<h2><span class="dot" style="display:inline-block;width:13px;height:13px;border-radius:50%;background:' + healthColor(h) + ';margin-right:7px"></span>' + esc(w.name) + (h < 0.3 ? ' 🍂' : '') + '</h2>' +
+    '<div class="meta">' +
+      '<div class="row"><span class="k">系</span><span>' + esc(w.family || '—') + '</span></div>' +
+      '<div class="row"><span class="k">状態</span><span>' + (STATUS[w.status] || esc(w.status)) + '</span></div>' +
+      '<div class="row"><span class="k">側面</span><span>' + (ASPECT[w.aspect] || esc(w.aspect)) + '</span></div>' +
+      '<div class="row"><span class="k">生まれた日</span><span>' + esc(w.bornOn || '—') + (w.author ? '（' + esc(w.author) + '）' : '') + '</span></div>' +
+      '<div class="row"><span class="k">元気になった日</span><span>' + fmtDT(w.vitalAt) + '</span></div>' +
+    '</div>' +
+    '<div class="bar"><div style="width:' + pct + '%;background:' + healthColor(h) + '"></div></div>' +
+    '<div class="barlabel">元気 ' + pct + '% ・ あと ' + daysLeft(w) + ' 日で枯れちゃう</div>' +
+    (w.memo ? '<div class="memo">' + esc(w.memo) + '</div>' : '') +
+    '<div class="seclabel">親</div><div class="chips">' + parentChips + '</div>' +
+    '<div class="seclabel">子</div><div class="chips">' + kidChips + '</div>' +
+    '<div class="acts">' +
+      '<button class="abtn green" type="button" data-act="child">🌱 子を登録</button>' +
+      '<button class="abtn" type="button" data-act="nutrient" ' + (state.stock.nutrient > 0 ? '' : 'disabled') + '>💊 栄養剤（残り ' + state.stock.nutrient + '）</button>' +
+      '<button class="abtn danger" type="button" data-act="herbicide" ' + (state.stock.herbicide > 0 ? '' : 'disabled') + '>☠️ 除草剤（残り ' + state.stock.herbicide + '）</button>' +
+      '<button class="abtn" type="button" data-act="edit">✏️ 編集</button>' +
+    '</div>';
+  showDetailPane(html);
+  const pane = isWide() ? $('#detailPane') : $('#sheet');
+  pane.querySelectorAll('[data-open]').forEach(el => {
+    el.addEventListener('click', () => openWord(Number(el.dataset.open)));
+  });
+  const closeBtn = pane.querySelector('[data-close]');
+  if(closeBtn) closeBtn.addEventListener('click', () => { selectedId = null; hideDetailPane(); renderTreeSel(); });
+  pane.querySelectorAll('[data-act]').forEach(el => {
+    el.addEventListener('click', () => detailAction(el.dataset.act, w.id));
+  });
+}
+async function detailAction(act, id){
+  const w = wordById(id);
+  if(!w) return;
+  if(act === 'child'){ openWordForm({baseParentId: id}); return; }
+  if(act === 'edit'){ openWordForm({editWord: w}); return; }
+  if(act === 'nutrient'){
+    if(state.stock.nutrient <= 0) return;
+    await commit(() => {
+      const t = wordById(id);
+      state.stock.nutrient -= 1;
+      t.vitalAt = nowISO();
+      addHistory(myName, '栄養剤', t.name, '💊 元気を取り戻した（残り' + state.stock.nutrient + '）');
+    }, '💊 ' + w.name + ' に栄養剤をあげたよ');
+    return;
+  }
+  if(act === 'herbicide'){
+    if(state.stock.herbicide <= 0) return;
+    if(!confirm('☠️ 「' + w.name + '」に除草剤を注入する？\nすぐに枯れてゴミ箱に入るよ。')) return;
+    await commit(() => {
+      const t = wordById(id);
+      state.stock.herbicide -= 1;
+      t.trashed = true; t.trashedAt = nowISO();
+      addHistory(myName, '除草剤', t.name, '☠️ 除草剤で枯らした（残り' + state.stock.herbicide + '）');
+    }, '☠️ ' + w.name + ' は枯れてゴミ箱に入ったよ');
+    selectedId = null; hideDetailPane();
+    return;
+  }
+}
+
+/* ================= word form (new / child / edit) ================= */
+function parentChecklist(selectedIds, excludeId){
+  const alive = aliveWords().filter(w => w.id !== excludeId);
+  if(!alive.length) return '<div style="font-size:13px;color:var(--sub)">（選べる言葉がまだない）</div>';
+  return '<div class="parentlist">' + alive.map(w =>
+    '<label><input type="checkbox" class="pchk" value="' + w.id + '"' + (selectedIds.includes(w.id) ? ' checked' : '') + '> ' + esc(w.name) + '</label>'
+  ).join('') + '</div>';
+}
+function optionsHTML(map, cur){
+  return Object.keys(map).map(k => '<option value="' + k + '"' + (k === cur ? ' selected' : '') + '>' + map[k] + '</option>').join('');
+}
+function openWordForm(opts){
+  opts = opts || {};
+  const editing = opts.editWord || null;
+  const baseParentId = opts.baseParentId || null;
+  const presetParents = editing ? (editing.parentIds || []).slice()
+    : (baseParentId ? [baseParentId] : []);
+  const title = editing ? '✏️ 言葉を編集' : (baseParentId ? '🌱 子を登録（親：' + esc(wordById(baseParentId).name) + '）' : '🌱 新しい言葉');
+  const html =
+    '<button class="x" type="button" data-close="1">✕</button>' +
+    '<h2>' + title + '</h2>' +
+    '<form id="wform">' +
+      '<div class="frow"><label>名前 *</label><input type="text" id="fName" value="' + (editing ? esc(editing.name) : '') + '" required></div>' +
+      '<div class="frow"><label>メモ</label><textarea id="fMemo">' + (editing ? esc(editing.memo) : '') + '</textarea></div>' +
+      '<div class="frow"><label>系（family）</label><input type="text" id="fFamily" value="' + (editing ? esc(editing.family) : '') + '" placeholder="例：△、GY▽XA、その他"></div>' +
+      '<div class="frow"><label>状態</label><select id="fStatus">' + optionsHTML(STATUS, editing ? editing.status : 'sprout') + '</select></div>' +
+      '<div class="frow"><label>側面</label><select id="fAspect">' + optionsHTML(ASPECT, editing ? editing.aspect : 'unset') + '</select></div>' +
+      '<div class="frow"><label>親（複数えらべる。なし＝根っこ）</label>' + parentChecklist(presetParents, editing ? editing.id : null) + '</div>' +
+      '<div class="acts"><button class="abtn green" type="submit">' + (editing ? '保存する' : '登録する 🌱') + '</button></div>' +
+    '</form>';
+  openSheet(html);
+  const form = $('#wform');
+  $('#sheet').querySelector('[data-close]').addEventListener('click', () => {
+    closeSheet();
+    if(selectedId != null && !isWide()){ const w = wordById(selectedId); if(w) openWord(selectedId); }
+  });
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const name = $('#fName').value.trim();
+    if(!name){ showBanner('名前を入れてね', true); return; }
+    const parentIds = Array.from(form.querySelectorAll('.pchk:checked')).map(c => Number(c.value));
+    const fields = {
+      name: name,
+      memo: $('#fMemo').value,
+      family: $('#fFamily').value.trim(),
+      status: $('#fStatus').value,
+      aspect: $('#fAspect').value,
+      parentIds: parentIds
+    };
+    let ok = false;
+    if(editing){
+      const eid = editing.id;
+      ok = await commit(() => {
+        const t = wordById(eid);
+        Object.assign(t, fields);
+        addHistory(myName, '編集', t.name, '内容を更新した');
+      }, '✏️ 保存したよ');
+    }else{
+      const nid = state.nextId;
+      ok = await commit(() => {
+        const t = nowISO();
+        state.words.push({
+          id: nid, name: fields.name, parentIds: fields.parentIds,
+          family: fields.family, status: fields.status, aspect: fields.aspect,
+          memo: fields.memo, author: myName, bornOn: jstToday(),
+          vitalAt: t, trashed: false, trashedAt: null
+        });
+        state.nextId = nid + 1;
+        // 「触る」= 子の登録：全親の vitalAt を更新
+        fields.parentIds.forEach(pid => {
+          const p = wordById(pid);
+          if(p && !p.trashed) p.vitalAt = t;
+        });
+        const parentNames = fields.parentIds.map(pid => { const p = wordById(pid); return p ? p.name : ''; }).filter(Boolean).join('・');
+        addHistory(myName, baseParentId ? '子を登録' : '種まき', fields.name,
+          parentNames ? '親：' + parentNames : '根っことして登録');
+      }, '🌱 「' + name + '」を登録したよ');
+    }
+    if(ok){
+      closeSheet();
+      if(baseParentId && !editing) openWord(baseParentId);
+      else if(editing) openWord(editing.id);
+    }
+  });
+}
+
+/* ================= trash / history ================= */
+function openTrash(){
+  const list = state.words.filter(w => w.trashed)
+    .sort((a,b) => String(b.trashedAt || '').localeCompare(String(a.trashedAt || '')));
+  const rows = list.length ? list.map(w =>
+    '<div class="lrow"><div class="t">🍂 ' + esc(w.name) + '</div>' +
+    '<div class="s">枯れた日：' + fmtDT(w.trashedAt) + (w.family ? ' ・ 系：' + esc(w.family) : '') + '</div>' +
+    '<button class="hbtn restore" type="button" data-restore="' + w.id + '">♻️ 戻す</button></div>'
+  ).join('') : '<div class="empty">ゴミ箱はからっぽだよ 🍃</div>';
+  showSub('<div class="viewhead"><button class="back" type="button" id="subBack">← 木にもどる</button><h3>🗑 ゴミ箱（' + list.length + '）</h3></div>' + rows);
+  $('#subBack').addEventListener('click', showMain);
+  $('#subView').querySelectorAll('[data-restore]').forEach(el => {
+    el.addEventListener('click', async () => {
+      const id = Number(el.dataset.restore);
+      const w = wordById(id);
+      const ok = await commit(() => {
+        const t = wordById(id);
+        t.trashed = false; t.trashedAt = null; t.vitalAt = nowISO();
+        addHistory(myName, '戻した', t.name, 'ゴミ箱から庭に戻した');
+      }, '♻️ 「' + (w ? w.name : '') + '」を庭に戻したよ');
+      if(ok) openTrash();
+    });
+  });
+}
+function openHistory(){
+  const list = state.history.slice(-100).reverse();
+  const rows = list.length ? list.map(hx =>
+    '<div class="lrow"><div class="t">' + esc(hx.action) + '：' + esc(hx.word) + '</div>' +
+    '<div class="s">' + fmtDT(hx.at) + ' ・ ' + esc(hx.by) + (hx.detail ? ' ・ ' + esc(hx.detail) : '') + '</div></div>'
+  ).join('') : '<div class="empty">まだ履歴がないよ</div>';
+  showSub('<div class="viewhead"><button class="back" type="button" id="subBack">← 木にもどる</button><h3>📜 変更履歴</h3></div>' + rows);
+  $('#subBack').addEventListener('click', showMain);
+}
+
+/* ================= gate & boot ================= */
+function enterApp(){
+  $('#gate').style.display = 'none';
+  $('#app').style.display = '';
+  if(!booted){ booted = true; bootData(); }
+}
+async function bootData(){
+  try{
+    await loadState();
+    const changed = autoProcess();
+    render();
+    if(changed){
+      try{ await saveState(); }
+      catch(e){ if(e.message !== 'conflict') showBanner('自動処理の保存に失敗したよ', true); }
+    }
+  }catch(e){
+    showBanner(e.message || '読み込めなかったよ', true);
+  }
+}
+function initGate(){
+  $('#buildStr').textContent = BUILD;
+  if(localStorage.getItem('keifuzu_ok') === '1' && myName){
+    enterApp();
+    return;
+  }
+  $('#gate').style.display = 'flex';
+  $('#gateName').value = myName || '';
+  const tryEnter = () => {
+    const name = $('#gateName').value.trim();
+    const pass = $('#gatePass').value.trim();
+    if(!name){ $('#gateErr').textContent = '名前を入れてね'; return; }
+    if(pass !== PASS){ $('#gateErr').textContent = 'パスワードが違うみたい'; return; }
+    myName = name;
+    localStorage.setItem('keifuzu_name', name);
+    localStorage.setItem('keifuzu_ok', '1');
+    enterApp();
+  };
+  $('#gateBtn').addEventListener('click', tryEnter);
+  $('#gatePass').addEventListener('keydown', e => { if(e.key === 'Enter') tryEnter(); });
+  $('#gateName').addEventListener('keydown', e => { if(e.key === 'Enter') $('#gatePass').focus(); });
+}
+document.addEventListener('DOMContentLoaded', () => {
+  initGate();
+  $('#btnNew').addEventListener('click', () => { showMain(); openWordForm({}); });
+  $('#btnTrash').addEventListener('click', openTrash);
+  $('#btnHistory').addEventListener('click', openHistory);
+  $('#btnReload').addEventListener('click', async () => {
+    selectedId = null; hideDetailPane(); showMain();
+    try{
+      await loadState();
+      const changed = autoProcess();
+      render();
+      if(changed){ try{ await saveState(); }catch(e){} }
+      showBanner('再読み込みしたよ 🌿', false);
+    }catch(e){ showBanner(e.message || '読み込めなかったよ', true); }
+  });
+  $('#scrim').addEventListener('click', () => { selectedId = null; closeSheet(); renderTreeSel(); });
+  document.addEventListener('click', (e) => {
+    const n = e.target.closest('[data-open]');
+    if(n && n.classList.contains('node')) openWord(Number(n.dataset.open));
+  });
+});
+</script>
+</body>
+</html>
