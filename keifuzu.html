@@ -159,6 +159,10 @@
     background:linear-gradient(135deg,#f2f8e9,#d9edc8); border-color:#a9c98d;
   }
   .abtn.arrow svg{width:20px; height:20px; fill:none; stroke:#2e6b34; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round;}
+  .acts .row .abtn.del{
+    flex:0 0 46px; padding:0; display:flex; align-items:center; justify-content:center;
+    background:#fdf0ec; border-color:#e5b3a6; font-size:16px;
+  }
   .sibpos{font-size:11px; color:var(--sub); text-align:right; margin-top:-3px;}
   /* ---------- forms ---------- */
   form .frow{margin:10px 0;}
@@ -249,7 +253,7 @@
   <main id="mainView">
     <div id="layout">
       <section id="treePane">
-        <div class="hint">言葉は7日間、子が生まれないと枯れてしまう。タップで詳細、栄養剤で元気に。<br>🍃 葉っぱの色＝何日目か：<span class="lg" style="background:hsl(130,55%,40%)"></span>1日目 <span class="lg" style="background:hsl(92,55%,42%)"></span>2日目 <span class="lg" style="background:hsl(47,90%,46%)"></span>3日目 <span class="lg" style="background:hsl(33,92%,48%)"></span>4日目 <span class="lg" style="background:hsl(8,68%,45%)"></span>5日目 <span class="lg" style="background:hsl(22,50%,33%)"></span>6日目 <span class="lg" style="background:hsl(40,5%,47%)"></span>7日目</div>
+        <div class="hint">言葉は7日間、子が生まれないと枯れてしまう（枯れると一族も一緒に枯れる）。タップで詳細、栄養剤で元気に。<br>🍃 葉っぱの色＝何日目か：<span class="lg" style="background:hsl(130,55%,40%)"></span>1日目 <span class="lg" style="background:hsl(92,55%,42%)"></span>2日目 <span class="lg" style="background:hsl(47,90%,46%)"></span>3日目 <span class="lg" style="background:hsl(33,92%,48%)"></span>4日目 <span class="lg" style="background:hsl(8,68%,45%)"></span>5日目 <span class="lg" style="background:hsl(22,50%,33%)"></span>6日目 <span class="lg" style="background:hsl(40,5%,47%)"></span>7日目</div>
         <div id="tree"></div>
       </section>
       <aside id="detailPane"></aside>
@@ -267,7 +271,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-13-1821';
+const BUILD = '2026-11-13-1832';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
@@ -380,15 +384,38 @@ function autoProcess(){
     state.stock.lastRefill = today;
     changed = true;
   }
-  // 2) wither sweep
+  // 2) wither sweep — a natural death takes its whole living descendant line with it
   const t = Date.now();
-  state.words.forEach(w => {
-    if(!w.trashed && (t - new Date(w.vitalAt).getTime()) / DAY >= 7){
-      w.trashed = true; w.trashedAt = nowISO();
-      addHistory('（自然）', '枯れた', w.name, '7日間、子が生まれなかった');
-      changed = true;
+  const dying = state.words.filter(w => !w.trashed && (t - new Date(w.vitalAt).getTime()) / DAY >= 7);
+  if(dying.length){
+    const kidsOf = new Map();
+    state.words.forEach(w => {
+      (w.parentIds || []).forEach(pid => {
+        if(!kidsOf.has(pid)) kidsOf.set(pid, []);
+        kidsOf.get(pid).push(w);
+      });
+    });
+    const trashSet = new Set(dying.map(w => w.id));
+    const queue = dying.slice();
+    while(queue.length){
+      const cur = queue.shift();
+      (kidsOf.get(cur.id) || []).forEach(c => {
+        if(!c.trashed && !trashSet.has(c.id)){ trashSet.add(c.id); queue.push(c); }
+      });
     }
-  });
+    const now = nowISO();
+    dying.forEach(w => {
+      w.trashed = true; w.trashedAt = now;
+      addHistory('（自然）', '枯れた', w.name, '7日間、子が生まれなかった');
+    });
+    state.words.forEach(w => {
+      if(trashSet.has(w.id) && !w.trashed){
+        w.trashed = true; w.trashedAt = now;
+        addHistory('（自然）', '一族枯れ', w.name, '上の言葉が枯れたので一緒に枯れた');
+      }
+    });
+    changed = true;
+  }
   return changed;
 }
 async function saveState(){
@@ -670,8 +697,9 @@ function renderDetail(w){
         '<button class="abtn" type="button" data-act="edit">✏️ 編集</button>' +
       '</div>' +
       '<div class="row">' +
-        '<button class="abtn compact" type="button" data-act="nutrient" ' + (state.stock.nutrient > 0 ? '' : 'disabled') + '>💊 栄養剤×' + state.stock.nutrient + '</button>' +
-        '<button class="abtn compact danger" type="button" data-act="herbicide" ' + (state.stock.herbicide > 0 ? '' : 'disabled') + '>☠️ 除草剤×' + state.stock.herbicide + '</button>' +
+        '<button class="abtn compact" type="button" data-act="nutrient" ' + (state.stock.nutrient > 0 ? '' : 'disabled') + '>💊栄養×' + state.stock.nutrient + '</button>' +
+        '<button class="abtn compact danger" type="button" data-act="herbicide" ' + (state.stock.herbicide > 0 ? '' : 'disabled') + '>☠️除草×' + state.stock.herbicide + '</button>' +
+        '<button class="abtn del" type="button" data-act="del" aria-label="削除">🗑</button>' +
         '<button class="abtn arrow" type="button" data-act="up" aria-label="兄弟の中で上へ" ' + (sibIdx <= 0 ? 'disabled' : '') + '><svg viewBox="0 0 24 24"><path d="M5 14l7-7 7 7"/></svg></button>' +
         '<button class="abtn arrow" type="button" data-act="down" aria-label="兄弟の中で下へ" ' + (sibIdx < 0 || sibIdx >= sib.group.length - 1 ? 'disabled' : '') + '><svg viewBox="0 0 24 24"><path d="M5 10l7 7 7-7"/></svg></button>' +
       '</div>' +
@@ -693,6 +721,16 @@ async function detailAction(act, id){
   if(!w) return;
   if(act === 'child'){ openWordForm({baseParentId: id}); return; }
   if(act === 'edit'){ openWordForm({editWord: w}); return; }
+  if(act === 'del'){
+    if(!confirm('🗑 「' + w.name + '」を削除する？\nすぐにゴミ箱に入るよ（この言葉だけ）。')) return;
+    await commit(() => {
+      const t = wordById(id);
+      t.trashed = true; t.trashedAt = nowISO();
+      addHistory(myName, '削除', t.name, '🗑 削除ボタンでゴミ箱へ（この言葉だけ）');
+    }, '🗑 ' + w.name + ' をゴミ箱に入れたよ');
+    selectedId = null; hideDetailPane();
+    return;
+  }
   if(act === 'up' || act === 'down'){
     const sib = siblingGroupOf(w);
     const i = sib.group.findIndex(x => x.id === id);
@@ -721,7 +759,7 @@ async function detailAction(act, id){
   if(act === 'herbicide'){
     if(state.stock.herbicide <= 0) return;
     if(ageDays(w) >= 6){ showBanner('もうあと1日もないくらい枯れかけだよ。除草剤は使わなかったよ', true); return; }
-    if(!confirm('☠️ 「' + w.name + '」に除草剤を注入する？\n一気に6日目まで進んで、あと約1日で枯れるよ。')) return;
+    if(!confirm('☠️ 「' + w.name + '」に除草剤を注入する？\n一気に6日目まで進んで、あと約1日で枯れるよ。枯れると一族も一緒に枯れる。')) return;
     await commit(() => {
       const t = wordById(id);
       state.stock.herbicide -= 1;
