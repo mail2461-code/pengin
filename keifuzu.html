@@ -71,6 +71,7 @@
     #scrim{display:none !important;}
   }
   .hint{font-size:12.5px; color:var(--sub); padding:2px 6px 10px;}
+  .hint .lg{display:inline-block; width:9px; height:9px; border-radius:2px 5px 2px 5px; vertical-align:-1px; margin:0 1px 0 4px;}
   /* ---------- tree (branch layout: roots left, descendants right) ---------- */
   #tree{
     overflow:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
@@ -229,6 +230,7 @@
       <button class="hbtn primary" id="btnNew" type="button">＋ 新しい言葉</button>
       <button class="hbtn" id="btnTrash" type="button">🗑 ゴミ箱</button>
       <button class="hbtn" id="btnHistory" type="button">📜 履歴</button>
+      <button class="hbtn" id="btnSearch" type="button">🔍 検索</button>
       <button class="hbtn reload" id="btnReload" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>更新</button>
     </div>
   </header>
@@ -238,7 +240,7 @@
   <main id="mainView">
     <div id="layout">
       <section id="treePane">
-        <div class="hint">言葉は7日間、子が生まれないと枯れてしまう。タップで詳細、栄養剤で元気に。</div>
+        <div class="hint">言葉は7日間、子が生まれないと枯れてしまう。タップで詳細、栄養剤で元気に。<br>🍃 葉っぱの色＝何日目か：<span class="lg" style="background:hsl(130,55%,40%)"></span>1日目 <span class="lg" style="background:hsl(92,55%,42%)"></span>2日目 <span class="lg" style="background:hsl(47,90%,46%)"></span>3日目 <span class="lg" style="background:hsl(33,92%,48%)"></span>4日目 <span class="lg" style="background:hsl(8,68%,45%)"></span>5日目 <span class="lg" style="background:hsl(22,50%,33%)"></span>6日目 <span class="lg" style="background:hsl(40,5%,47%)"></span>7日目</div>
         <div id="tree"></div>
       </section>
       <aside id="detailPane"></aside>
@@ -256,7 +258,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-13-1751';
+const BUILD = '2026-11-13-1755';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
@@ -302,11 +304,15 @@ function ageDays(w){ return (Date.now() - new Date(w.vitalAt).getTime()) / DAY; 
 function health(w){ return Math.max(0, 1 - ageDays(w) / 7); }
 function daysLeft(w){ return Math.max(0, Math.floor(7 - ageDays(w))); }
 function healthColor(h){
-  // 段階カラー（日目ベース）: 緑（〜2日目）→ 黄（3〜4日目）→ 赤（5〜6日目）→ 茶（7日目）
-  if(h > 5/7) return 'hsl(112,52%,38%)';
-  if(h > 3/7) return 'hsl(47,88%,46%)';
-  if(h > 1/7) return 'hsl(6,68%,44%)';
-  return 'hsl(24,45%,30%)';
+  // 7段階カラー（日目ごと）: 1日目 緑 → 2日目 黄緑 → 3日目 黄 → 4日目 橙 → 5日目 赤 → 6日目 茶 → 7日目 グレー
+  const age = (1 - h) * 7;
+  if(age < 1) return 'hsl(130,55%,40%)';
+  if(age < 2) return 'hsl(92,55%,42%)';
+  if(age < 3) return 'hsl(47,90%,46%)';
+  if(age < 4) return 'hsl(33,92%,48%)';
+  if(age < 5) return 'hsl(8,68%,45%)';
+  if(age < 6) return 'hsl(22,50%,33%)';
+  return 'hsl(40,5%,47%)';
 }
 const STATUS = {sprout:'🌱 芽', spreading:'🌿 広がり中', settled:'🌳 定着', onhold:'⏸ 保留'};
 const ASPECT = {action:'行動', background:'背景', both:'両方', unset:'未設定'};
@@ -343,6 +349,7 @@ function normalize(st){
   if(typeof st.stock.herbicide !== 'number') st.stock.herbicide = 10;
   if(!st.stock.lastRefill) st.stock.lastRefill = jstToday();
   st.history = Array.isArray(st.history) ? st.history : [];
+  st.siblingOrders = (st.siblingOrders && typeof st.siblingOrders === 'object' && !Array.isArray(st.siblingOrders)) ? st.siblingOrders : {};
   return st;
 }
 async function loadState(){
@@ -417,8 +424,35 @@ function childrenMap(){
       map.get(pid).push(w);
     });
   });
-  map.forEach(list => list.sort((a,b) => a.id - b.id));
+  map.forEach((list, pid) => map.set(pid, applySiblingOrder(list, String(pid))));
   return map;
+}
+function applySiblingOrder(list, key){
+  const ord = (state.siblingOrders && Array.isArray(state.siblingOrders[key])) ? state.siblingOrders[key] : null;
+  const arr = list.slice();
+  if(!ord) return arr.sort((a,b) => a.id - b.id);
+  const idx = new Map(ord.map((id,i) => [id, i]));
+  return arr.sort((a,b) => {
+    const ia = idx.has(a.id) ? idx.get(a.id) : 1e9 + a.id;
+    const ib = idx.has(b.id) ? idx.get(b.id) : 1e9 + b.id;
+    return ia - ib;
+  });
+}
+function primaryParentOf(w){
+  const byId = new Map(state.words.map(x => [x.id, x]));
+  const ps = (w.parentIds || []).map(id => byId.get(id)).filter(p => p && !p.trashed);
+  if(!ps.length) return null;
+  ps.sort((a,b) => (depthOf(b, byId) - depthOf(a, byId)) || (a.id - b.id));
+  return ps[0];
+}
+function siblingGroupOf(w){
+  const pp = primaryParentOf(w);
+  const key = pp ? String(pp.id) : 'root';
+  const group = aliveWords().filter(x => {
+    const p = primaryParentOf(x);
+    return pp ? (p && p.id === pp.id) : !p;
+  });
+  return {key: key, group: applySiblingOrder(group, key)};
 }
 function depthOf(w, byId, guard){
   guard = guard || 0;
@@ -473,8 +507,9 @@ function renderTree(){
       childOf.get(pp.id).push(w);
     }
   });
-  roots.sort((a,b) => a.id - b.id);
-  childOf.forEach(l => l.sort((a,b) => a.id - b.id));
+  const orderedRoots = applySiblingOrder(roots, 'root');
+  roots.length = 0; roots.push.apply(roots, orderedRoots);
+  childOf.forEach((l, pid) => { const s = applySiblingOrder(l, String(pid)); l.length = 0; l.push.apply(l, s); });
   // layout: DFS from roots; leaves take row slots, parents center on their displayed children
   const pos = new Map();
   const placed = new Set();
@@ -603,6 +638,9 @@ function renderDetail(w){
   const kidChips = kids.length
     ? kids.map(c => '<button class="chip" type="button" data-open="' + c.id + '">⬇ ' + esc(c.name) + '</button>').join('')
     : '<span style="color:var(--sub); font-size:13px">（まだない）</span>';
+  const sib = siblingGroupOf(w);
+  const sibIdx = sib.group.findIndex(x => x.id === w.id);
+  const sibLabel = sib.key === 'root' ? '根っこの並び' : '兄弟の並び';
   const html =
     '<button class="x" type="button" data-close="1">✕</button>' +
     '<h2>' + esc(w.name) + (h < 0.3 ? ' 🍂' : '') + '</h2>' +
@@ -622,6 +660,9 @@ function renderDetail(w){
       '<button class="abtn" type="button" data-act="nutrient" ' + (state.stock.nutrient > 0 ? '' : 'disabled') + '>💊 栄養剤（残り ' + state.stock.nutrient + '）</button>' +
       '<button class="abtn danger" type="button" data-act="herbicide" ' + (state.stock.herbicide > 0 ? '' : 'disabled') + '>☠️ 除草剤（残り ' + state.stock.herbicide + '）</button>' +
       '<button class="abtn" type="button" data-act="edit">✏️ 編集</button>' +
+      '<div class="seclabel">' + sibLabel + '（' + (sibIdx + 1) + ' / ' + sib.group.length + '）</div>' +
+      '<button class="abtn" type="button" data-act="up" ' + (sibIdx <= 0 ? 'disabled' : '') + '>⬆️ 上へ</button>' +
+      '<button class="abtn" type="button" data-act="down" ' + (sibIdx < 0 || sibIdx >= sib.group.length - 1 ? 'disabled' : '') + '>⬇️ 下へ</button>' +
     '</div>';
   showDetailPane(html);
   const pane = isWide() ? $('#detailPane') : $('#sheet');
@@ -639,6 +680,20 @@ async function detailAction(act, id){
   if(!w) return;
   if(act === 'child'){ openWordForm({baseParentId: id}); return; }
   if(act === 'edit'){ openWordForm({editWord: w}); return; }
+  if(act === 'up' || act === 'down'){
+    const sib = siblingGroupOf(w);
+    const i = sib.group.findIndex(x => x.id === id);
+    const j = act === 'up' ? i - 1 : i + 1;
+    if(i < 0 || j < 0 || j >= sib.group.length) return;
+    const ids = sib.group.map(x => x.id);
+    const tmp = ids[i]; ids[i] = ids[j]; ids[j] = tmp;
+    await commit(() => {
+      if(!state.siblingOrders) state.siblingOrders = {};
+      state.siblingOrders[sib.key] = ids;
+      addHistory(myName, '並び替え', w.name, act === 'up' ? '兄弟の中で上へ' : '兄弟の中で下へ');
+    }, '↕️ 並びを変えたよ');
+    return;
+  }
   if(act === 'nutrient'){
     if(state.stock.nutrient <= 0) return;
     await commit(() => {
@@ -669,9 +724,10 @@ async function detailAction(act, id){
 function parentChecklist(selectedIds, excludeId){
   const alive = aliveWords().filter(w => w.id !== excludeId);
   if(!alive.length) return '<div style="font-size:13px;color:var(--sub)">（選べる言葉がまだない）</div>';
-  return '<div class="parentlist">' + alive.map(w =>
+  return '<input type="text" id="parentSearch" placeholder="🔍 親を検索" autocomplete="off" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;font-size:14px;margin-bottom:6px">' +
+    '<div class="parentlist">' + alive.map(w =>
     '<label><input type="checkbox" class="pchk" value="' + w.id + '"' + (selectedIds.includes(w.id) ? ' checked' : '') + '> ' + esc(w.name) + '</label>'
-  ).join('') + '</div>';
+  ).join('') + '</div><div id="parentNoMatch" style="display:none;font-size:12.5px;color:var(--sub);padding:4px 2px">見つからないよ</div>';
 }
 function optionsHTML(map, cur){
   return Object.keys(map).map(k => '<option value="' + k + '"' + (k === cur ? ' selected' : '') + '>' + map[k] + '</option>').join('');
@@ -696,6 +752,20 @@ function openWordForm(opts){
     '</form>';
   openSheet(html);
   const form = $('#wform');
+  const pSearch = $('#parentSearch');
+  if(pSearch){
+    pSearch.addEventListener('input', () => {
+      const q = pSearch.value.trim().toLowerCase();
+      let any = false;
+      form.querySelectorAll('.parentlist label').forEach(lb => {
+        const hit = !q || lb.textContent.toLowerCase().includes(q);
+        lb.style.display = hit ? '' : 'none';
+        if(hit) any = true;
+      });
+      const nm = $('#parentNoMatch');
+      if(nm) nm.style.display = any ? 'none' : '';
+    });
+  }
   $('#sheet').querySelector('[data-close]').addEventListener('click', () => {
     closeSheet();
     if(selectedId != null && !isWide()){ const w = wordById(selectedId); if(w) openWord(selectedId); }
@@ -782,6 +852,37 @@ function openHistory(){
   showSub('<div class="viewhead"><button class="back" type="button" id="subBack">← 木にもどる</button><h3>📜 変更履歴</h3></div>' + rows);
   $('#subBack').addEventListener('click', showMain);
 }
+function openSearch(){
+  showSub('<div class="viewhead"><button class="back" type="button" id="subBack">← 木にもどる</button><h3>🔍 全体検索</h3></div>' +
+    '<div style="padding:10px 12px 0"><input type="text" id="searchInput" placeholder="言葉・メモ・系で検索" autocomplete="off" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#fff;font-size:15px"></div>' +
+    '<div id="searchResults"></div>');
+  $('#subBack').addEventListener('click', showMain);
+  const input = $('#searchInput');
+  const box = $('#searchResults');
+  function draw(){
+    const q = input.value.trim().toLowerCase();
+    const hits = state.words.filter(w => {
+      if(!q) return true;
+      return [w.name, w.memo, w.family, w.author].some(s => String(s || '').toLowerCase().includes(q));
+    }).sort((a,b) => ((a.trashed ? 1 : 0) - (b.trashed ? 1 : 0)) || (a.id - b.id));
+    box.innerHTML = '<div style="padding:8px 14px 2px;font-size:12.5px;color:var(--sub)">' + hits.length + '件</div>' +
+      (hits.length ? hits.map(w => {
+        const sub = [w.family ? '系：' + esc(w.family) : '', w.bornOn || ''].filter(Boolean).join(' ・ ');
+        return w.trashed
+          ? '<div class="lrow"><div class="t">🍂 ' + esc(w.name) + '（ゴミ箱）</div><div class="s">' + sub + '</div><button class="hbtn restore" type="button" data-trash="1">🗑 ゴミ箱を見る</button></div>'
+          : '<div class="lrow"><div class="t">' + esc(w.name) + '</div><div class="s">' + sub + '</div><button class="hbtn restore" type="button" data-openword="' + w.id + '">🌳 木で見る</button></div>';
+      }).join('') : '<div class="empty">見つからないよ</div>');
+    box.querySelectorAll('[data-openword]').forEach(el => {
+      el.addEventListener('click', () => { showMain(); openWord(Number(el.dataset.openword)); });
+    });
+    box.querySelectorAll('[data-trash]').forEach(el => {
+      el.addEventListener('click', openTrash);
+    });
+  }
+  input.addEventListener('input', draw);
+  draw();
+  input.focus();
+}
 
 /* ================= gate & boot ================= */
 function enterApp(){
@@ -829,6 +930,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#btnNew').addEventListener('click', () => { showMain(); openWordForm({}); });
   $('#btnTrash').addEventListener('click', openTrash);
   $('#btnHistory').addEventListener('click', openHistory);
+  $('#btnSearch').addEventListener('click', openSearch);
   $('#btnReload').addEventListener('click', async () => {
     const rb = $('#btnReload'); rb.classList.add('spin');
     selectedId = null; hideDetailPane(); showMain();
