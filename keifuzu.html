@@ -151,6 +151,15 @@
   .abtn.danger{background:#fdf0ec; border-color:#e5b3a6; color:var(--danger);}
   .abtn:disabled{opacity:.42; box-shadow:none;}
   .abtn:active{transform:scale(.98);}
+  .acts .row{display:flex; gap:8px;}
+  .acts .row .abtn{flex:1 1 0;}
+  .acts .row .abtn.compact{font-size:13px; padding:10px 4px; white-space:nowrap;}
+  .acts .row .abtn.arrow{
+    flex:0 0 46px; padding:0; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg,#f2f8e9,#d9edc8); border-color:#a9c98d;
+  }
+  .abtn.arrow svg{width:20px; height:20px; fill:none; stroke:#2e6b34; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round;}
+  .sibpos{font-size:11px; color:var(--sub); text-align:right; margin-top:-3px;}
   /* ---------- forms ---------- */
   form .frow{margin:10px 0;}
   form label{display:block; font-size:12.5px; color:var(--sub); margin-bottom:4px;}
@@ -258,12 +267,12 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-13-1755';
+const BUILD = '2026-11-13-1821';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
 const DAY = 86400000;
-const PASS = '2461';
+const PASS = '2501';
 const $ = (s, el) => (el || document).querySelector(s);
 
 /* ================= state ================= */
@@ -656,13 +665,17 @@ function renderDetail(w){
     '<div class="seclabel">親</div><div class="chips">' + parentChips + '</div>' +
     '<div class="seclabel">子</div><div class="chips">' + kidChips + '</div>' +
     '<div class="acts">' +
-      '<button class="abtn green" type="button" data-act="child">🌱 子を登録</button>' +
-      '<button class="abtn" type="button" data-act="nutrient" ' + (state.stock.nutrient > 0 ? '' : 'disabled') + '>💊 栄養剤（残り ' + state.stock.nutrient + '）</button>' +
-      '<button class="abtn danger" type="button" data-act="herbicide" ' + (state.stock.herbicide > 0 ? '' : 'disabled') + '>☠️ 除草剤（残り ' + state.stock.herbicide + '）</button>' +
-      '<button class="abtn" type="button" data-act="edit">✏️ 編集</button>' +
-      '<div class="seclabel">' + sibLabel + '（' + (sibIdx + 1) + ' / ' + sib.group.length + '）</div>' +
-      '<button class="abtn" type="button" data-act="up" ' + (sibIdx <= 0 ? 'disabled' : '') + '>⬆️ 上へ</button>' +
-      '<button class="abtn" type="button" data-act="down" ' + (sibIdx < 0 || sibIdx >= sib.group.length - 1 ? 'disabled' : '') + '>⬇️ 下へ</button>' +
+      '<div class="row">' +
+        '<button class="abtn green" type="button" data-act="child">🌱 子を登録</button>' +
+        '<button class="abtn" type="button" data-act="edit">✏️ 編集</button>' +
+      '</div>' +
+      '<div class="row">' +
+        '<button class="abtn compact" type="button" data-act="nutrient" ' + (state.stock.nutrient > 0 ? '' : 'disabled') + '>💊 栄養剤×' + state.stock.nutrient + '</button>' +
+        '<button class="abtn compact danger" type="button" data-act="herbicide" ' + (state.stock.herbicide > 0 ? '' : 'disabled') + '>☠️ 除草剤×' + state.stock.herbicide + '</button>' +
+        '<button class="abtn arrow" type="button" data-act="up" aria-label="兄弟の中で上へ" ' + (sibIdx <= 0 ? 'disabled' : '') + '><svg viewBox="0 0 24 24"><path d="M5 14l7-7 7 7"/></svg></button>' +
+        '<button class="abtn arrow" type="button" data-act="down" aria-label="兄弟の中で下へ" ' + (sibIdx < 0 || sibIdx >= sib.group.length - 1 ? 'disabled' : '') + '><svg viewBox="0 0 24 24"><path d="M5 10l7 7 7-7"/></svg></button>' +
+      '</div>' +
+      '<div class="sibpos">' + sibLabel + ' ' + (sibIdx + 1) + ' / ' + sib.group.length + '</div>' +
     '</div>';
   showDetailPane(html);
   const pane = isWide() ? $('#detailPane') : $('#sheet');
@@ -905,7 +918,7 @@ async function bootData(){
 }
 function initGate(){
   $('#buildStr').textContent = BUILD;
-  if(localStorage.getItem('keifuzu_ok') === '1' && myName){
+  if(localStorage.getItem('keifuzu_ok_2501') === '1' && myName){
     enterApp();
     return;
   }
@@ -918,7 +931,7 @@ function initGate(){
     if(pass !== PASS){ $('#gateErr').textContent = 'パスワードが違うみたい'; return; }
     myName = name;
     localStorage.setItem('keifuzu_name', name);
-    localStorage.setItem('keifuzu_ok', '1');
+    localStorage.setItem('keifuzu_ok_2501', '1');
     enterApp();
   };
   $('#gateBtn').addEventListener('click', tryEnter);
