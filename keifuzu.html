@@ -83,41 +83,34 @@
   /* ---------- tree (branch layout: roots left, descendants right) ---------- */
   #tree{
     overflow:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
-    border:1px solid rgba(43,27,14,.55); border-radius:18px;
-    background:
-      radial-gradient(circle, rgba(255,226,178,.16) 0 1.2px, transparent 2.2px) 0 0/19px 19px,
-      radial-gradient(circle, rgba(18,9,3,.30) 0 1.6px, transparent 2.8px) 7px 11px/27px 27px,
-      radial-gradient(circle, rgba(226,199,154,.12) 0 1px, transparent 2px) 13px 4px/37px 37px,
-      radial-gradient(ellipse 190px 70px at 18% 18%, rgba(255,220,170,.10), transparent 70%),
-      radial-gradient(ellipse 260px 96px at 78% 72%, rgba(12,6,2,.24), transparent 72%),
-      radial-gradient(ellipse 150px 56px at 56% 28%, rgba(35,20,9,.20), transparent 70%),
-      linear-gradient(135deg, #7a5636 0%, #5d3f27 48%, #45301f 100%);
-    box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,232,196,.18), inset 0 -22px 38px rgba(10,5,2,.22);
+    border:1px solid rgba(122,88,45,.28); border-radius:18px;
+    background:linear-gradient(165deg,#ead9bf,#e2cfae);
+    box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,250,238,.55);
     max-height:68vh;
   }
   .canvas{position:relative;}
   .canvas svg{position:absolute; left:0; top:0; pointer-events:none;}
-  .canvas svg path{fill:none; stroke:rgba(238,214,175,.52); stroke-width:2; stroke-linecap:round;}
+  .canvas svg path{fill:none; stroke:rgba(101,67,33,.45); stroke-width:2; stroke-linecap:round;}
   .node{
     position:absolute; width:160px; height:38px;
     display:flex; flex-direction:column; justify-content:center; gap:1px;
-    background:linear-gradient(135deg,#62bd7d,#3d925e); border:1px solid rgba(255,255,255,.38); border-radius:16px;
-    padding:5px 12px; color:#fff;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.28), 0 2px 3px rgba(16,8,2,.28), 0 10px 22px rgba(16,8,2,.32);
+    background:linear-gradient(180deg,#fffefa,#faf5ea); border:1px solid rgba(122,88,45,.16); border-radius:16px;
+    padding:5px 12px; color:var(--ink);
+    box-shadow:0 1px 2px rgba(96,64,32,.07), 0 8px 20px rgba(96,64,32,.12), inset 0 1px 0 #ffffff;
     cursor:pointer; user-select:none;
   }
   .node:active{transform:scale(.98);}
-  .node.sel{outline:2px solid #fff; outline-offset:1px; box-shadow:0 0 0 4px rgba(47,125,79,.55), 0 10px 22px rgba(16,8,2,.34);}
+  .node.sel{outline:2px solid var(--accent); outline-offset:1px; box-shadow:0 0 0 4px rgba(47,125,79,.35), 0 8px 20px rgba(96,64,32,.16);}
   .node .n1{display:flex; align-items:center; gap:6px; min-width:0;}
   .node .leaf{
     position:absolute; top:-6px; right:9px; z-index:2;
     width:13px; height:13px; border-radius:2px 11px 2px 11px;
     transform:rotate(-28deg);
-    box-shadow:0 0 0 2px rgba(255,255,255,.88), 0 1px 3px rgba(16,8,2,.4);
+    box-shadow:0 1px 3px rgba(96,64,32,.35);
   }
   .node .syr{position:absolute; top:-15px; left:3px; width:24px; height:24px; z-index:3; pointer-events:none;}
   .node .nm{font-weight:800; letter-spacing:.01em; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  .node .bdg{font-size:11px; color:rgba(255,255,255,.88); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .node .bdg{font-size:11px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .empty{padding:26px 14px; text-align:center; color:var(--sub); font-size:14px;}
   /* ---------- sheet / detail ---------- */
   #scrim{
@@ -289,7 +282,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-13-1920';
+const BUILD = '2026-11-13-2104';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
