@@ -247,7 +247,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-13-1748';
+const BUILD = '2026-11-13-1749';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
@@ -637,14 +637,15 @@ async function detailAction(act, id){
   }
   if(act === 'herbicide'){
     if(state.stock.herbicide <= 0) return;
-    if(!confirm('☠️ 「' + w.name + '」に除草剤を注入する？\nすぐに枯れてゴミ箱に入るよ。')) return;
+    if(ageDays(w) >= 6){ showBanner('もうあと1日もないくらい枯れかけだよ。除草剤は使わなかったよ', true); return; }
+    if(!confirm('☠️ 「' + w.name + '」に除草剤を注入する？\n一気に6日目まで進んで、あと約1日で枯れるよ。')) return;
     await commit(() => {
       const t = wordById(id);
       state.stock.herbicide -= 1;
-      t.trashed = true; t.trashedAt = nowISO();
-      addHistory(myName, '除草剤', t.name, '☠️ 除草剤で枯らした（残り' + state.stock.herbicide + '）');
-    }, '☠️ ' + w.name + ' は枯れてゴミ箱に入ったよ');
-    selectedId = null; hideDetailPane();
+      const target = Date.now() - 6 * DAY;
+      if(new Date(t.vitalAt).getTime() > target) t.vitalAt = new Date(target).toISOString();
+      addHistory(myName, '除草剤', t.name, '☠️ 除草剤で6日目まで進めた（残り' + state.stock.herbicide + '）');
+    }, '☠️ ' + w.name + ' は一気に枯れかけたよ（あと約1日）');
     return;
   }
 }
