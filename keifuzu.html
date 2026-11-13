@@ -4,20 +4,23 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>🌳 系譜図ガーデン</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#d9dee4; --card:#ffffff; --ink:#20242c; --sub:#7d8593;
-    --line:#e2e6eb; --green:#4caf50; --accent:#4da866; --accent2:#2f7d4f;
+    --bg:#d8d7cf; --card:#ffffff; --ink:#22271f; --sub:#7f8478;
+    --line:#e1e2da; --green:#4caf50; --accent:#4da866; --accent2:#2f7d4f;
     --brown:#a26744; --danger:#c0452f; --gold:#e9c46a;
-    --shadow:0 1px 2px rgba(32,36,44,.05), 0 10px 30px rgba(32,36,44,.07);
-    --shadow-sm:0 1px 2px rgba(32,36,44,.05), 0 4px 12px rgba(32,36,44,.06);
+    --shadow:0 1px 2px rgba(35,38,32,.05), 0 10px 30px rgba(35,38,32,.08);
+    --shadow-sm:0 1px 2px rgba(35,38,32,.05), 0 4px 12px rgba(35,38,32,.07);
     --grad:linear-gradient(135deg,#5cb877,#35935e);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;}
   body{
-    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
-    background:linear-gradient(180deg,#e6eaed 0%, var(--bg) 260px);
+    font-family:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Maru Gothic Pro","Hiragino Sans","Noto Sans JP",-apple-system,BlinkMacSystemFont,sans-serif;
+    background:linear-gradient(180deg,#e9e9e2 0%, var(--bg) 260px);
     color:var(--ink); font-size:15px; line-height:1.5;
     padding-bottom:env(safe-area-inset-bottom);
     -webkit-font-smoothing:antialiased;
@@ -29,8 +32,8 @@
   /* ---------- header ---------- */
   header{
     position:sticky; top:0; z-index:30;
-    background:rgba(255,255,255,.85); backdrop-filter:blur(12px) saturate(1.4);
-    border-bottom:1px solid rgba(32,36,44,.06);
+    background:rgba(255,255,252,.86); backdrop-filter:blur(12px) saturate(1.35);
+    border-bottom:1px solid rgba(35,38,32,.07);
     padding:10px 12px 10px;
   }
   .h-title{font-size:19px; font-weight:800; letter-spacing:.01em; display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;}
@@ -80,37 +83,41 @@
   /* ---------- tree (branch layout: roots left, descendants right) ---------- */
   #tree{
     overflow:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
-    border:1px solid rgba(96,64,32,.45); border-radius:18px;
+    border:1px solid rgba(122,88,45,.34); border-radius:18px;
     background:
-      repeating-linear-gradient(180deg, transparent 0 118px, rgba(60,35,10,.28) 118px 120px),
-      repeating-linear-gradient(93deg, rgba(59,36,16,.055) 0 2px, transparent 2px 9px, rgba(255,235,200,.05) 9px 11px, transparent 11px 23px),
-      repeating-linear-gradient(88deg, rgba(59,36,16,.05) 0 1px, transparent 1px 14px),
-      linear-gradient(180deg, #c49a68, #a97c4c);
-    box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,240,210,.35);
+      radial-gradient(ellipse 96px 34px at 18% 22%, rgba(101,67,33,.17), rgba(101,67,33,.07) 42%, transparent 70%),
+      radial-gradient(ellipse 128px 44px at 76% 68%, rgba(101,67,33,.14), rgba(101,67,33,.05) 45%, transparent 72%),
+      radial-gradient(ellipse 74px 26px at 58% 14%, rgba(101,67,33,.11), transparent 68%),
+      radial-gradient(ellipse 180px 54px at 36% 86%, rgba(255,246,220,.16), transparent 70%),
+      repeating-linear-gradient(91deg, rgba(96,61,28,.045) 0 2px, transparent 2px 7px, rgba(255,244,214,.05) 7px 9px, transparent 9px 19px),
+      repeating-linear-gradient(88deg, rgba(96,61,28,.032) 0 1px, transparent 1px 11px, rgba(255,255,255,.025) 11px 13px, transparent 13px 27px),
+      linear-gradient(100deg, #dec398, #d2af7d 48%, #c9a26f);
+    box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,246,220,.4), inset 0 -18px 34px rgba(101,67,33,.08);
     max-height:68vh;
   }
   .canvas{position:relative;}
   .canvas svg{position:absolute; left:0; top:0; pointer-events:none;}
-  .canvas svg path{fill:none; stroke:rgba(56,36,16,.5); stroke-width:2; stroke-linecap:round;}
+  .canvas svg path{fill:none; stroke:rgba(86,57,25,.46); stroke-width:2; stroke-linecap:round;}
   .node{
     position:absolute; width:160px; height:38px;
     display:flex; flex-direction:column; justify-content:center; gap:1px;
-    background:var(--card); border:1px solid rgba(32,36,44,.05); border-radius:14px;
-    padding:5px 11px; box-shadow:var(--shadow-sm);
+    background:linear-gradient(135deg,#62bd7d,#3d925e); border:1px solid rgba(255,255,255,.38); border-radius:16px;
+    padding:5px 12px; color:#fff;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.28), 0 2px 3px rgba(74,50,18,.16), 0 10px 22px rgba(74,50,18,.20);
     cursor:pointer; user-select:none;
   }
   .node:active{transform:scale(.98);}
-  .node.sel{outline:2px solid var(--accent); outline-offset:-1px;}
+  .node.sel{outline:2px solid #fff; outline-offset:1px; box-shadow:0 0 0 4px rgba(47,125,79,.55), 0 10px 22px rgba(74,50,18,.22);}
   .node .n1{display:flex; align-items:center; gap:6px; min-width:0;}
   .node .leaf{
     position:absolute; top:-6px; right:9px; z-index:2;
     width:13px; height:13px; border-radius:2px 11px 2px 11px;
     transform:rotate(-28deg);
-    box-shadow:0 1px 3px rgba(32,36,44,.28);
+    box-shadow:0 0 0 2px rgba(255,255,255,.88), 0 1px 3px rgba(74,50,18,.35);
   }
   .node .syr{position:absolute; top:-15px; left:3px; width:24px; height:24px; z-index:3; pointer-events:none;}
-  .node .nm{font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  .node .bdg{font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .node .nm{font-weight:800; letter-spacing:.01em; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .node .bdg{font-size:11px; color:rgba(255,255,255,.88); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .empty{padding:26px 14px; text-align:center; color:var(--sub); font-size:14px;}
   /* ---------- sheet / detail ---------- */
   #scrim{
@@ -206,7 +213,7 @@
   /* ---------- gate ---------- */
   #gate{
     position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
-    background:linear-gradient(180deg,#eceff1,#d3d9df); padding:20px;
+    background:linear-gradient(180deg,#eeeeea,#d8d7cf); padding:20px;
   }
   #gate .box{
     background:var(--card); border:1px solid rgba(32,36,44,.05); border-radius:22px;
@@ -282,7 +289,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-13-1906';
+const BUILD = '2026-11-13-1912';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
