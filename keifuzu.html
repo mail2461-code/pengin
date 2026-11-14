@@ -32,7 +32,7 @@
   /* ---------- header ---------- */
   header{
     position:sticky; top:0; z-index:30;
-    background:rgba(255,255,252,.86); backdrop-filter:blur(12px) saturate(1.35);
+    background:#fbfaf5;
     border-bottom:1px solid rgba(35,38,32,.07);
     padding:10px 12px 10px;
   }
@@ -45,6 +45,7 @@
     border:1px solid var(--line); background:var(--card); border-radius:999px;
     padding:6px 13px; font-size:13px; box-shadow:var(--shadow-sm);
   }
+  .zbtn{width:32px; height:32px; padding:0; border-radius:50%; font-size:13px; line-height:1; display:inline-flex; align-items:center; justify-content:center;}
   .hbtn.primary{background:var(--grad); border:none; color:#fff; font-weight:700; box-shadow:0 4px 14px rgba(53,147,94,.35);}
   .hbtn.reload{
     background:var(--grad); color:#fff; border:none;
@@ -89,8 +90,6 @@
     max-height:68vh;
   }
   .canvas{position:relative; transform-origin:0 0;}
-  .zoomctl{display:flex; gap:6px; align-items:center; justify-content:flex-end; margin:2px 0 8px;}
-  .zoomctl .pct{font-size:13px; color:var(--sub); min-width:46px; text-align:center; font-variant-numeric:tabular-nums;}
   .canvas svg{position:absolute; left:0; top:0; pointer-events:none;}
   .canvas svg path{fill:none; stroke:rgba(101,67,33,.45); stroke-width:2; stroke-linecap:round;}
   .node{
@@ -258,6 +257,8 @@
       <button class="hbtn" id="btnHistory" type="button">📜 履歴</button>
       <button class="hbtn" id="btnSearch" type="button">🔍 検索</button>
       <button class="hbtn reload" id="btnReload" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>更新</button>
+      <button class="hbtn zbtn" id="zoomOut" type="button" aria-label="引く">➖</button>
+      <button class="hbtn zbtn" id="zoomIn" type="button" aria-label="寄る">➕</button>
     </div>
   </header>
 
@@ -267,7 +268,6 @@
     <div id="layout">
       <section id="treePane">
         <div class="hint">言葉は7日間ほっておくと枯れてしまう（枯れると一族も一緒に枯れる）。子を登録するか、メモを書くと元気を取り戻す。タップで詳細、栄養剤でも元気に。<br>🍃 葉っぱの色＝何日目か：<span class="lg" style="background:hsl(130,55%,40%)"></span>1日目 <span class="lg" style="background:hsl(92,55%,42%)"></span>2日目 <span class="lg" style="background:hsl(47,90%,46%)"></span>3日目 <span class="lg" style="background:hsl(33,92%,48%)"></span>4日目 <span class="lg" style="background:hsl(8,68%,45%)"></span>5日目 <span class="lg" style="background:hsl(22,50%,33%)"></span>6日目 <span class="lg" style="background:hsl(40,5%,47%)"></span>7日目</div>
-        <div class="zoomctl"><button class="hbtn" id="zoomOut" type="button">－ 引く</button><span class="pct" id="zoomPct">100%</span><button class="hbtn" id="zoomIn" type="button">＋ 寄る</button><button class="hbtn" id="zoomReset" type="button">リセット</button></div>
         <div id="tree"></div>
       </section>
       <aside id="detailPane"></aside>
@@ -285,7 +285,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-14-1128';
+const BUILD = '2026-11-14-1137';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
@@ -1025,7 +1025,6 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#btnNew').addEventListener('click', () => { showMain(); openWordForm({}); });
   $('#zoomIn').addEventListener('click', () => stepZoom(1));
   $('#zoomOut').addEventListener('click', () => stepZoom(-1));
-  $('#zoomReset').addEventListener('click', () => setZoom(1));
   $('#btnTrash').addEventListener('click', openTrash);
   $('#btnHistory').addEventListener('click', openHistory);
   $('#btnSearch').addEventListener('click', openSearch);
