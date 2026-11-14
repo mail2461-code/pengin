@@ -285,7 +285,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-14-1123';
+const BUILD = '2026-11-14-1128';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
@@ -987,6 +987,17 @@ async function bootData(){
     showBanner(e.message || '読み込めなかったよ', true);
   }
 }
+// ===== 新しい版が出ていたら1回だけ自動で読み直す（ふわふわと同じ仕掛け：ホーム画面の古いキャッシュ対策） =====
+try {
+  fetch(location.pathname + '?_b=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => {
+    const m = t.match(/const BUILD = '([^']+)'/);
+    if (m && m[1] !== BUILD && sessionStorage.getItem('keifuzuBuildReload') !== m[1]) {
+      sessionStorage.setItem('keifuzuBuildReload', m[1]);
+      location.replace(location.pathname + '?v=' + encodeURIComponent(m[1]));
+    }
+  }).catch(() => {});
+} catch (e) {}
+
 function initGate(){
   $('#buildStr').textContent = BUILD;
   if(localStorage.getItem('keifuzu_ok_2501') === '1' && myName){
