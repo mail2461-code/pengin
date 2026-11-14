@@ -88,7 +88,9 @@
     box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,250,238,.55);
     max-height:68vh;
   }
-  .canvas{position:relative;}
+  .canvas{position:relative; transform-origin:0 0;}
+  .zoomctl{display:flex; gap:6px; align-items:center; justify-content:flex-end; margin:2px 0 8px;}
+  .zoomctl .pct{font-size:13px; color:var(--sub); min-width:46px; text-align:center; font-variant-numeric:tabular-nums;}
   .canvas svg{position:absolute; left:0; top:0; pointer-events:none;}
   .canvas svg path{fill:none; stroke:rgba(101,67,33,.45); stroke-width:2; stroke-linecap:round;}
   .node{
@@ -264,7 +266,8 @@
   <main id="mainView">
     <div id="layout">
       <section id="treePane">
-        <div class="hint">言葉は7日間、子が生まれないと枯れてしまう（枯れると一族も一緒に枯れる）。タップで詳細、栄養剤で元気に。<br>🍃 葉っぱの色＝何日目か：<span class="lg" style="background:hsl(130,55%,40%)"></span>1日目 <span class="lg" style="background:hsl(92,55%,42%)"></span>2日目 <span class="lg" style="background:hsl(47,90%,46%)"></span>3日目 <span class="lg" style="background:hsl(33,92%,48%)"></span>4日目 <span class="lg" style="background:hsl(8,68%,45%)"></span>5日目 <span class="lg" style="background:hsl(22,50%,33%)"></span>6日目 <span class="lg" style="background:hsl(40,5%,47%)"></span>7日目</div>
+        <div class="hint">言葉は7日間ほっておくと枯れてしまう（枯れると一族も一緒に枯れる）。子を登録するか、メモを書くと元気を取り戻す。タップで詳細、栄養剤でも元気に。<br>🍃 葉っぱの色＝何日目か：<span class="lg" style="background:hsl(130,55%,40%)"></span>1日目 <span class="lg" style="background:hsl(92,55%,42%)"></span>2日目 <span class="lg" style="background:hsl(47,90%,46%)"></span>3日目 <span class="lg" style="background:hsl(33,92%,48%)"></span>4日目 <span class="lg" style="background:hsl(8,68%,45%)"></span>5日目 <span class="lg" style="background:hsl(22,50%,33%)"></span>6日目 <span class="lg" style="background:hsl(40,5%,47%)"></span>7日目</div>
+        <div class="zoomctl"><button class="hbtn" id="zoomOut" type="button">－ 引く</button><span class="pct" id="zoomPct">100%</span><button class="hbtn" id="zoomIn" type="button">＋ 寄る</button><button class="hbtn" id="zoomReset" type="button">リセット</button></div>
         <div id="tree"></div>
       </section>
       <aside id="detailPane"></aside>
@@ -282,7 +285,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-13-2104';
+const BUILD = '2026-11-14-1123';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
@@ -529,6 +532,21 @@ function nodeHTML(w, pos){
     '<div class="n1">' +
     '<span class="nm">' + esc(w.name) + '</span>' + merge + '</div></div>';
 }
+/* ================= zoom ================= */
+const ZOOM_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+let zoomLevel = 1;
+function setZoom(z){
+  zoomLevel = Math.min(2, Math.max(0.5, z));
+  const pct = $('#zoomPct'); if(pct) pct.textContent = Math.round(zoomLevel * 100) + '%';
+  renderTree();
+}
+function stepZoom(dir){
+  let i = ZOOM_STEPS.findIndex(s => Math.abs(s - zoomLevel) < 0.001);
+  if(i < 0) i = 2;
+  i = Math.min(ZOOM_STEPS.length - 1, Math.max(0, i + dir));
+  setZoom(ZOOM_STEPS[i]);
+}
+
 function renderTree(){
   const box = $('#tree');
   const alive = aliveWords();
@@ -594,10 +612,11 @@ function renderTree(){
       paths += '<path d="M ' + x1 + ' ' + y1 + ' C ' + (x1 + dx) + ' ' + y1 + ', ' + (x2 - dx) + ' ' + y2 + ', ' + x2 + ' ' + y2 + '"/>';
     });
   });
-  let html = '<div class="canvas" style="width:' + Math.round(cw) + 'px;height:' + Math.round(ch) + 'px">' +
+  let html = '<div class="zoomwrap" style="width:' + Math.round(cw * zoomLevel) + 'px;height:' + Math.round(ch * zoomLevel) + 'px">' +
+    '<div class="canvas" style="width:' + Math.round(cw) + 'px;height:' + Math.round(ch) + 'px;transform:scale(' + zoomLevel + ')">' +
     '<svg width="' + Math.round(cw) + '" height="' + Math.round(ch) + '">' + paths + '</svg>';
   alive.forEach(w => { html += nodeHTML(w, xy(w)); });
-  html += '</div>';
+  html += '</div></div>';
   box.innerHTML = html;
 }
 
@@ -847,10 +866,13 @@ function openWordForm(opts){
     let ok = false;
     if(editing){
       const eid = editing.id;
+      const memoWritten = fields.memo.trim() !== '' && fields.memo !== (editing.memo || '');
       ok = await commit(() => {
         const t = wordById(eid);
         Object.assign(t, fields);
-        addHistory(myName, '編集', t.name, '内容を更新した');
+        // 詳細（メモ）を書くことも「触る」扱い：書かれた言葉は元気を取り戻す（2026-11-14 本人の追加ルール）
+        if(memoWritten) t.vitalAt = nowISO();
+        addHistory(myName, '編集', t.name, memoWritten ? '内容を更新した（メモを書いて元気を取り戻した）' : '内容を更新した');
       }, '✏️ 保存したよ');
     }else{
       const nid = state.nextId;
@@ -990,6 +1012,9 @@ function initGate(){
 document.addEventListener('DOMContentLoaded', () => {
   initGate();
   $('#btnNew').addEventListener('click', () => { showMain(); openWordForm({}); });
+  $('#zoomIn').addEventListener('click', () => stepZoom(1));
+  $('#zoomOut').addEventListener('click', () => stepZoom(-1));
+  $('#zoomReset').addEventListener('click', () => setZoom(1));
   $('#btnTrash').addEventListener('click', openTrash);
   $('#btnHistory').addEventListener('click', openHistory);
   $('#btnSearch').addEventListener('click', openSearch);
