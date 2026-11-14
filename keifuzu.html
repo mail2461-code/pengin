@@ -110,6 +110,7 @@
     box-shadow:0 1px 3px rgba(96,64,32,.35);
   }
   .node .syr{position:absolute; top:-15px; left:3px; width:24px; height:24px; z-index:3; pointer-events:none;}
+  .node .okb{position:absolute; top:-13px; left:30px; font-size:15px; line-height:1; z-index:3; pointer-events:none;}
   .node .nm{font-weight:800; letter-spacing:.01em; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .node .bdg{font-size:11px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .empty{padding:26px 14px; text-align:center; color:var(--sub); font-size:14px;}
@@ -285,7 +286,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-14-1137';
+const BUILD = '2026-11-14-1957';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
@@ -527,8 +528,9 @@ function nodeHTML(w, pos){
   const style = pos ? ' style="left:' + Math.round(pos.x) + 'px;top:' + Math.round(pos.y) + 'px"' : '';
   const syr = (w.lastNutrientAt && (Date.now() - new Date(w.lastNutrientAt).getTime()) < DAY)
     ? '<span class="syr">' + SYRINGE_SVG + '</span>' : '';
+  const okb = w.ok ? '<span class="okb">👌</span>' : '';
   return '<div class="node' + sel + '" data-open="' + w.id + '"' + style + '>' +
-    '<span class="leaf" style="background:' + healthColor(h) + '"></span>' + syr +
+    '<span class="leaf" style="background:' + healthColor(h) + '"></span>' + syr + okb +
     '<div class="n1">' +
     '<span class="nm">' + esc(w.name) + '</span>' + merge + '</div></div>';
 }
@@ -729,6 +731,7 @@ function renderDetail(w){
       '<div class="row">' +
         '<button class="abtn compact" type="button" data-act="nutrient" ' + (state.stock.nutrient > 0 ? '' : 'disabled') + '>💊栄養×' + state.stock.nutrient + '</button>' +
         '<button class="abtn compact danger" type="button" data-act="herbicide" ' + (state.stock.herbicide > 0 ? '' : 'disabled') + '>☠️除草×' + state.stock.herbicide + '</button>' +
+        '<button class="abtn compact" type="button" data-act="ok">' + (w.ok ? '👌外す' : '👌つける') + '</button>' +
         '<button class="abtn del" type="button" data-act="del" aria-label="削除">🗑</button>' +
         '<button class="abtn arrow" type="button" data-act="up" aria-label="兄弟の中で上へ" ' + (sibIdx <= 0 ? 'disabled' : '') + '><svg viewBox="0 0 24 24"><path d="M5 14l7-7 7 7"/></svg></button>' +
         '<button class="abtn arrow" type="button" data-act="down" aria-label="兄弟の中で下へ" ' + (sibIdx < 0 || sibIdx >= sib.group.length - 1 ? 'disabled' : '') + '><svg viewBox="0 0 24 24"><path d="M5 10l7 7 7-7"/></svg></button>' +
@@ -773,6 +776,15 @@ async function detailAction(act, id){
       state.siblingOrders[sib.key] = ids;
       addHistory(myName, '並び替え', w.name, act === 'up' ? '兄弟の中で上へ' : '兄弟の中で下へ');
     }, '↕️ 並びを変えたよ');
+    return;
+  }
+  if(act === 'ok'){
+    const wasOk = !!w.ok;
+    await commit(() => {
+      const t = wordById(id);
+      t.ok = !t.ok;
+      addHistory(myName, '👌バッジ', t.name, t.ok ? '👌 バッジをつけた' : '👌 バッジを外した');
+    }, wasOk ? '👌 バッジを外したよ' : '👌 バッジをつけたよ');
     return;
   }
   if(act === 'nutrient'){
