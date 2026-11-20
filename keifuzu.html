@@ -79,6 +79,18 @@
     }
     #scrim{display:none !important;}
   }
+  /* ---------- landscape phones: compact header, taller tree ---------- */
+  @media (orientation:landscape) and (max-height:560px){
+    header{padding:6px 12px;}
+    .h-title{font-size:16px;}
+    .h-stock{margin-top:0; font-size:12px;}
+    .h-btns{margin-top:5px;}
+    .hbtn{padding:4px 11px; font-size:12.5px;}
+    .zbtn{width:28px; height:28px;}
+    #treePane{padding:8px 10px 16px;}
+    #tree{max-height:calc(100vh - 118px); max-height:calc(100dvh - 118px);}
+    .sheet{max-height:94vh; max-height:94dvh;}
+  }
   .hint{font-size:12.5px; color:var(--sub); padding:2px 6px 10px;}
   .hint .lg{display:inline-block; width:9px; height:9px; border-radius:2px 5px 2px 5px; vertical-align:-1px; margin:0 1px 0 4px;}
   /* ---------- tree (branch layout: roots left, descendants right) ---------- */
@@ -286,7 +298,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-14-1957';
+const BUILD = '2026-11-21-0635';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
