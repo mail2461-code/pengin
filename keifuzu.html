@@ -284,8 +284,9 @@
   <main id="mainView">
     <div id="layout">
       <section id="treePane">
-        <div class="hint">言葉は7日間ほっておくと枯れてしまう（枯れると一族も一緒に枯れる）。子を登録するか、メモを書くと元気を取り戻す。タップで詳細、栄養剤でも元気に。✨のついた合流した言葉（親が2つ以上）は枯れない。🔘ブラックボックスを押すと、根と葉っぱの先っぽだけが見えて、中間は全部黒く隠れる。<br>🍃 葉っぱの色＝何日目か：<span class="lg" style="background:hsl(130,55%,40%)"></span>1日目 <span class="lg" style="background:hsl(92,55%,42%)"></span>2日目 <span class="lg" style="background:hsl(47,90%,46%)"></span>3日目 <span class="lg" style="background:hsl(33,92%,48%)"></span>4日目 <span class="lg" style="background:hsl(8,68%,45%)"></span>5日目 <span class="lg" style="background:hsl(22,50%,33%)"></span>6日目 <span class="lg" style="background:hsl(40,5%,47%)"></span>7日目</div>
+        <div class="hint">🍃 葉っぱの色＝何日目か：<span class="lg" style="background:hsl(130,55%,40%)"></span>1日目 <span class="lg" style="background:hsl(92,55%,42%)"></span>2日目 <span class="lg" style="background:hsl(47,90%,46%)"></span>3日目 <span class="lg" style="background:hsl(33,92%,48%)"></span>4日目 <span class="lg" style="background:hsl(8,68%,45%)"></span>5日目 <span class="lg" style="background:hsl(22,50%,33%)"></span>6日目 <span class="lg" style="background:hsl(40,5%,47%)"></span>7日目</div>
         <div id="tree"></div>
+        <div class="hint">言葉は7日間ほっておくと枯れてしまう（枯れると一族も一緒に枯れる）。子を登録するか、メモを書くと元気を取り戻す。タップで詳細、栄養剤でも元気に。✨のついた合流した言葉（親が2つ以上）は枯れない。🔘ブラックボックスを押すと、根と葉っぱの先っぽだけが見えて、中間は全部黒く隠れる（合流✨は対象外）。</div>
       </section>
       <aside id="detailPane"></aside>
     </div>
@@ -302,7 +303,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-22-0803';
+const BUILD = '2026-11-22-0808';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
@@ -637,6 +638,7 @@ function renderTree(){
   const hasChild = new Set();
   alive.forEach(w => { (w.parentIds || []).forEach(pid => { const p = byId.get(pid); if(p && !p.trashed) hasChild.add(pid); }); });
   bboxIds = new Set(alive.filter(w =>
+    !isMerged(w) &&
     (w.parentIds || []).some(pid => { const p = byId.get(pid); return p && !p.trashed; }) && hasChild.has(w.id)
   ).map(w => w.id));
   // primary parent = living parent with greatest depth (deepest); ties -> smallest id
