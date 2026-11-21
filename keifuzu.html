@@ -297,7 +297,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-22-0313';
+const BUILD = '2026-11-22-0446';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
@@ -751,12 +751,20 @@ function hideDetailPane(){
 }
 
 /* ================= detail ================= */
-function openWord(id){
+function centerOnWord(id){
+  const box = $('#tree'); if(!box) return;
+  const el = box.querySelector('.node[data-open="' + id + '"]'); if(!el) return;
+  const x = parseFloat(el.style.left) || 0, y = parseFloat(el.style.top) || 0;
+  box.scrollLeft = Math.max(0, Math.round((x + NODE_W / 2) * zoomLevel - box.clientWidth / 2));
+  box.scrollTop = Math.max(0, Math.round((y + NODE_H / 2) * zoomLevel - box.clientHeight / 2));
+}
+function openWord(id, center){
   const w = wordById(id);
   if(!w) return;
   selectedId = id;
   renderDetail(w);
   renderTreeSel();
+  if(center) centerOnWord(id);
 }
 function renderDetail(w){
   const h = health(w);
@@ -807,7 +815,7 @@ function renderDetail(w){
   showDetailPane(html);
   const pane = isWide() ? $('#detailPane') : $('#sheet');
   pane.querySelectorAll('[data-open]').forEach(el => {
-    el.addEventListener('click', () => openWord(Number(el.dataset.open)));
+    el.addEventListener('click', () => openWord(Number(el.dataset.open), true));
   });
   const closeBtn = pane.querySelector('[data-close]');
   if(closeBtn) closeBtn.addEventListener('click', () => { selectedId = null; hideDetailPane(); renderTreeSel(); });
@@ -1035,7 +1043,7 @@ function openSearch(){
           : '<div class="lrow"><div class="t">' + esc(w.name) + '</div><div class="s">' + sub + '</div><button class="hbtn restore" type="button" data-openword="' + w.id + '">🌳 木で見る</button></div>';
       }).join('') : '<div class="empty">見つからないよ</div>');
     box.querySelectorAll('[data-openword]').forEach(el => {
-      el.addEventListener('click', () => { showMain(); openWord(Number(el.dataset.openword)); });
+      el.addEventListener('click', () => { showMain(); openWord(Number(el.dataset.openword), true); });
     });
     box.querySelectorAll('[data-trash]').forEach(el => {
       el.addEventListener('click', openTrash);
