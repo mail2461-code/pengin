@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>🌳 系譜図ガーデン</title>
+<title>🪴ガーデン</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet">
@@ -123,6 +123,7 @@
   }
   .node .syr{position:absolute; top:-15px; left:3px; width:24px; height:24px; z-index:3; pointer-events:none;}
   .node .okb{position:absolute; top:-13px; left:30px; font-size:15px; line-height:1; z-index:3; pointer-events:none;}
+  .node .mrg{position:absolute; top:-13px; right:6px; font-size:14px; line-height:1; z-index:3; pointer-events:none;}
   .node .nm{font-weight:800; letter-spacing:.01em; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .node .bdg{font-size:11px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .empty{padding:26px 14px; text-align:center; color:var(--sub); font-size:14px;}
@@ -246,7 +247,7 @@
 <!-- ======== gate ======== -->
 <div id="gate" style="display:none">
   <div class="box">
-    <h1>🌳 系譜図ガーデン</h1>
+    <h1>🪴ガーデン</h1>
     <p>名前とパスワードで入ってね。<br>名前は変更履歴のためだけに使うよ。</p>
     <input id="gateName" type="text" placeholder="名前（例：ぺん銀）" autocomplete="off">
     <input id="gatePass" type="password" inputmode="numeric" placeholder="パスワード" autocomplete="off">
@@ -258,7 +259,7 @@
 <!-- ======== app ======== -->
 <div id="app" style="display:none">
   <header>
-    <div class="h-title">🌳 系譜図ガーデン <span class="count" id="hCount"></span></div>
+    <div class="h-title">🪴ガーデン <span class="count" id="hCount"></span></div>
     <div class="h-stock">
       <span>💊 栄養剤 × <b id="hNut">-</b></span>
       <span>☠️ 除草剤 × <b id="hHerb">-</b></span>
@@ -280,7 +281,7 @@
   <main id="mainView">
     <div id="layout">
       <section id="treePane">
-        <div class="hint">言葉は7日間ほっておくと枯れてしまう（枯れると一族も一緒に枯れる）。子を登録するか、メモを書くと元気を取り戻す。タップで詳細、栄養剤でも元気に。<br>🍃 葉っぱの色＝何日目か：<span class="lg" style="background:hsl(130,55%,40%)"></span>1日目 <span class="lg" style="background:hsl(92,55%,42%)"></span>2日目 <span class="lg" style="background:hsl(47,90%,46%)"></span>3日目 <span class="lg" style="background:hsl(33,92%,48%)"></span>4日目 <span class="lg" style="background:hsl(8,68%,45%)"></span>5日目 <span class="lg" style="background:hsl(22,50%,33%)"></span>6日目 <span class="lg" style="background:hsl(40,5%,47%)"></span>7日目</div>
+        <div class="hint">言葉は7日間ほっておくと枯れてしまう（枯れると一族も一緒に枯れる）。子を登録するか、メモを書くと元気を取り戻す。タップで詳細、栄養剤でも元気に。✨のついた合流した言葉（親が2つ以上）は枯れない。<br>🍃 葉っぱの色＝何日目か：<span class="lg" style="background:hsl(130,55%,40%)"></span>1日目 <span class="lg" style="background:hsl(92,55%,42%)"></span>2日目 <span class="lg" style="background:hsl(47,90%,46%)"></span>3日目 <span class="lg" style="background:hsl(33,92%,48%)"></span>4日目 <span class="lg" style="background:hsl(8,68%,45%)"></span>5日目 <span class="lg" style="background:hsl(22,50%,33%)"></span>6日目 <span class="lg" style="background:hsl(40,5%,47%)"></span>7日目</div>
         <div id="tree"></div>
       </section>
       <aside id="detailPane"></aside>
@@ -298,7 +299,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-21-0635';
+const BUILD = '2026-11-22-0300';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
@@ -341,8 +342,9 @@ function daysBetweenJST(a, b){ // a,b = 'YYYY-MM-DD'
   return Math.round((db - da) / DAY);
 }
 function ageDays(w){ return (Date.now() - new Date(w.vitalAt).getTime()) / DAY; }
-function health(w){ return Math.max(0, 1 - ageDays(w) / 7); }
-function daysLeft(w){ return Math.max(0, Math.floor(7 - ageDays(w))); }
+function isMerged(w){ return (w.parentIds || []).length >= 2; }
+function health(w){ return isMerged(w) ? 1 : Math.max(0, 1 - ageDays(w) / 7); }
+function daysLeft(w){ return isMerged(w) ? 7 : Math.max(0, Math.floor(7 - ageDays(w))); }
 function healthColor(h){
   // 7段階カラー（日目ごと）: 1日目 緑 → 2日目 黄緑 → 3日目 黄 → 4日目 橙 → 5日目 赤 → 6日目 茶 → 7日目 グレー
   const age = (1 - h) * 7;
@@ -413,7 +415,7 @@ function autoProcess(){
   }
   // 2) wither sweep — a natural death takes its whole living descendant line with it
   const t = Date.now();
-  const dying = state.words.filter(w => !w.trashed && (t - new Date(w.vitalAt).getTime()) / DAY >= 7);
+  const dying = state.words.filter(w => !w.trashed && !isMerged(w) && (t - new Date(w.vitalAt).getTime()) / DAY >= 7);
   if(dying.length){
     const kidsOf = new Map();
     state.words.forEach(w => {
@@ -427,7 +429,7 @@ function autoProcess(){
     while(queue.length){
       const cur = queue.shift();
       (kidsOf.get(cur.id) || []).forEach(c => {
-        if(!c.trashed && !trashSet.has(c.id)){ trashSet.add(c.id); queue.push(c); }
+        if(!c.trashed && !trashSet.has(c.id) && !isMerged(c)){ trashSet.add(c.id); queue.push(c); }
       });
     }
     const now = nowISO();
@@ -541,8 +543,9 @@ function nodeHTML(w, pos){
   const syr = (w.lastNutrientAt && (Date.now() - new Date(w.lastNutrientAt).getTime()) < DAY)
     ? '<span class="syr">' + SYRINGE_SVG + '</span>' : '';
   const okb = w.ok ? '<span class="okb">👌</span>' : '';
+  const mrg = isMerged(w) ? '<span class="mrg">✨</span>' : '';
   return '<div class="node' + sel + '" data-open="' + w.id + '"' + style + '>' +
-    '<span class="leaf" style="background:' + healthColor(h) + '"></span>' + syr + okb +
+    '<span class="leaf" style="background:' + healthColor(h) + '"></span>' + syr + okb + mrg +
     '<div class="n1">' +
     '<span class="nm">' + esc(w.name) + '</span>' + merge + '</div></div>';
 }
@@ -731,7 +734,7 @@ function renderDetail(w){
       '<div class="row"><span class="k">元気になった日</span><span>' + fmtDT(w.vitalAt) + '</span></div>' +
     '</div>' +
     '<div class="bar"><div style="width:' + pct + '%;background:' + healthColor(h) + '"></div></div>' +
-    '<div class="barlabel">元気 ' + pct + '%</div>' +
+    '<div class="barlabel">元気 ' + pct + '%' + (isMerged(w) ? '（✨合流・枯れない）' : '') + '</div>' +
     (w.memo ? '<div class="memo">' + esc(w.memo) + '</div>' : '') +
     '<div class="seclabel">親</div><div class="chips">' + parentChips + '</div>' +
     '<div class="seclabel">子</div><div class="chips">' + kidChips + '</div>' +
