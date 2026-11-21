@@ -114,6 +114,10 @@
   }
   .node:active{transform:scale(.98);}
   .node.sel{outline:2px solid var(--accent); outline-offset:1px; box-shadow:0 0 0 4px rgba(47,125,79,.35), 0 8px 20px rgba(96,64,32,.16);}
+  .node.bbox{background:#14161a; border-color:#14161a; cursor:default; box-shadow:0 8px 20px rgba(20,22,26,.28); align-items:center;}
+  .node.bbox:active{transform:none;}
+  .node.bbox .bb{color:#454b54; font-size:13px; letter-spacing:.4em; padding-left:.4em;}
+  .hbtn.on{background:#14161a; color:#fff; border-color:#14161a;}
   .node .n1{display:flex; align-items:center; gap:6px; min-width:0;}
   .node .leaf{
     position:absolute; top:-6px; right:9px; z-index:2;
@@ -270,6 +274,7 @@
       <button class="hbtn" id="btnTrash" type="button">🗑 ゴミ箱</button>
       <button class="hbtn" id="btnHistory" type="button">📜 履歴</button>
       <button class="hbtn" id="btnSearch" type="button">🔍 検索</button>
+      <button class="hbtn" id="btnBBox" type="button">🔘 ブラックボックス</button>
       <button class="hbtn reload" id="btnReload" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>更新</button>
     </div>
   </header>
@@ -279,7 +284,7 @@
   <main id="mainView">
     <div id="layout">
       <section id="treePane">
-        <div class="hint">言葉は7日間ほっておくと枯れてしまう（枯れると一族も一緒に枯れる）。子を登録するか、メモを書くと元気を取り戻す。タップで詳細、栄養剤でも元気に。✨のついた合流した言葉（親が2つ以上）は枯れない。<br>🍃 葉っぱの色＝何日目か：<span class="lg" style="background:hsl(130,55%,40%)"></span>1日目 <span class="lg" style="background:hsl(92,55%,42%)"></span>2日目 <span class="lg" style="background:hsl(47,90%,46%)"></span>3日目 <span class="lg" style="background:hsl(33,92%,48%)"></span>4日目 <span class="lg" style="background:hsl(8,68%,45%)"></span>5日目 <span class="lg" style="background:hsl(22,50%,33%)"></span>6日目 <span class="lg" style="background:hsl(40,5%,47%)"></span>7日目</div>
+        <div class="hint">言葉は7日間ほっておくと枯れてしまう（枯れると一族も一緒に枯れる）。子を登録するか、メモを書くと元気を取り戻す。タップで詳細、栄養剤でも元気に。✨のついた合流した言葉（親が2つ以上）は枯れない。🔘ブラックボックスを押すと、根と葉っぱの先っぽだけが見えて、中間は全部黒く隠れる。<br>🍃 葉っぱの色＝何日目か：<span class="lg" style="background:hsl(130,55%,40%)"></span>1日目 <span class="lg" style="background:hsl(92,55%,42%)"></span>2日目 <span class="lg" style="background:hsl(47,90%,46%)"></span>3日目 <span class="lg" style="background:hsl(33,92%,48%)"></span>4日目 <span class="lg" style="background:hsl(8,68%,45%)"></span>5日目 <span class="lg" style="background:hsl(22,50%,33%)"></span>6日目 <span class="lg" style="background:hsl(40,5%,47%)"></span>7日目</div>
         <div id="tree"></div>
       </section>
       <aside id="detailPane"></aside>
@@ -297,7 +302,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-22-0446';
+const BUILD = '2026-11-22-0803';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
@@ -311,6 +316,8 @@ let baseContent = null;  // content string as loaded (conflict check)
 let myName = localStorage.getItem('keifuzu_name') || '';
 let selectedId = null;
 let booted = false;
+let blackBox = localStorage.getItem('keifuzu_bbox') === '1';
+let bboxIds = new Set();
 
 /* ================= helpers ================= */
 function esc(s){
@@ -538,6 +545,9 @@ function nodeHTML(w, pos){
   const merge = (w.parentIds || []).length >= 2 ? '<span class="bdg">🌳合流</span>' : '';
   const sel = w.id === selectedId ? ' sel' : '';
   const style = pos ? ' style="left:' + Math.round(pos.x) + 'px;top:' + Math.round(pos.y) + 'px"' : '';
+  if(blackBox && bboxIds.has(w.id)){
+    return '<div class="node bbox"' + style + '><div class="bb">■■■</div></div>';
+  }
   const syr = (w.lastNutrientAt && (Date.now() - new Date(w.lastNutrientAt).getTime()) < DAY)
     ? '<span class="syr">' + SYRINGE_SVG + '</span>' : '';
   const okb = w.ok ? '<span class="okb">👌</span>' : '';
@@ -623,6 +633,12 @@ function renderTree(){
     return;
   }
   const byId = new Map(state.words.map(w => [w.id, w]));
+  // black box set: words with a living parent AND a living child (roots and tips stay visible)
+  const hasChild = new Set();
+  alive.forEach(w => { (w.parentIds || []).forEach(pid => { const p = byId.get(pid); if(p && !p.trashed) hasChild.add(pid); }); });
+  bboxIds = new Set(alive.filter(w =>
+    (w.parentIds || []).some(pid => { const p = byId.get(pid); return p && !p.trashed; }) && hasChild.has(w.id)
+  ).map(w => w.id));
   // primary parent = living parent with greatest depth (deepest); ties -> smallest id
   function primaryParent(w){
     const ps = (w.parentIds || []).map(id => byId.get(id)).filter(p => p && !p.trashed);
@@ -1113,6 +1129,15 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#btnTrash').addEventListener('click', openTrash);
   $('#btnHistory').addEventListener('click', openHistory);
   $('#btnSearch').addEventListener('click', openSearch);
+  const bbBtn = $('#btnBBox');
+  const syncBBoxBtn = () => { if(bbBtn) bbBtn.classList.toggle('on', blackBox); };
+  syncBBoxBtn();
+  if(bbBtn) bbBtn.addEventListener('click', () => {
+    blackBox = !blackBox;
+    localStorage.setItem('keifuzu_bbox', blackBox ? '1' : '0');
+    syncBBoxBtn();
+    renderTree();
+  });
   $('#btnReload').addEventListener('click', async () => {
     const rb = $('#btnReload'); rb.classList.add('spin');
     selectedId = null; hideDetailPane(); showMain();
