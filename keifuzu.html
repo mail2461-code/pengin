@@ -303,7 +303,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-24-1930';
+const BUILD = '2026-11-24-1933';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
@@ -1045,7 +1045,13 @@ function openHistory(){
   showSub('<div class="viewhead"><button class="back" type="button" id="subBack">← 木にもどる</button><h3>📜 変更履歴</h3></div>' + rows);
   $('#subBack').addEventListener('click', showMain);
   $('#subView').querySelectorAll('[data-openword]').forEach(el => {
-    el.addEventListener('click', () => { showMain(); openWord(Number(el.dataset.openword), true); });
+    el.addEventListener('click', () => {
+      const id = Number(el.dataset.openword);
+      showMain();
+      selectedId = id;
+      renderTreeSel();
+      centerOnWord(id);
+    });
   });
   $('#subView').querySelectorAll('[data-trash]').forEach(el => {
     el.addEventListener('click', openTrash);
