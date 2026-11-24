@@ -303,7 +303,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-22-0808';
+const BUILD = '2026-11-24-1930';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
@@ -1033,12 +1033,23 @@ function openTrash(){
 }
 function openHistory(){
   const list = state.history.slice(-100).reverse();
-  const rows = list.length ? list.map(hx =>
-    '<div class="lrow"><div class="t">' + esc(hx.action) + '：' + esc(hx.word) + '</div>' +
-    '<div class="s">' + fmtDT(hx.at) + ' ・ ' + esc(hx.by) + (hx.detail ? ' ・ ' + esc(hx.detail) : '') + '</div></div>'
-  ).join('') : '<div class="empty">まだ履歴がないよ</div>';
+  const rows = list.length ? list.map(hx => {
+    const cands = state.words.filter(w => w.name === hx.word);
+    const live = cands.find(w => !w.trashed);
+    const btn = live
+      ? '<button class="hbtn restore" type="button" data-openword="' + live.id + '">🌳 木で見る</button>'
+      : (cands.length ? '<button class="hbtn restore" type="button" data-trash="1">🗑 ゴミ箱を見る</button>' : '');
+    return '<div class="lrow"><div class="t">' + esc(hx.action) + '：' + esc(hx.word) + '</div>' +
+    '<div class="s">' + fmtDT(hx.at) + ' ・ ' + esc(hx.by) + (hx.detail ? ' ・ ' + esc(hx.detail) : '') + '</div>' + btn + '</div>';
+  }).join('') : '<div class="empty">まだ履歴がないよ</div>';
   showSub('<div class="viewhead"><button class="back" type="button" id="subBack">← 木にもどる</button><h3>📜 変更履歴</h3></div>' + rows);
   $('#subBack').addEventListener('click', showMain);
+  $('#subView').querySelectorAll('[data-openword]').forEach(el => {
+    el.addEventListener('click', () => { showMain(); openWord(Number(el.dataset.openword), true); });
+  });
+  $('#subView').querySelectorAll('[data-trash]').forEach(el => {
+    el.addEventListener('click', openTrash);
+  });
 }
 function openSearch(){
   showSub('<div class="viewhead"><button class="back" type="button" id="subBack">← 木にもどる</button><h3>🔍 全体検索</h3></div>' +
