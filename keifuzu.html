@@ -289,7 +289,7 @@
       <section id="treePane">
         <div class="hint">🍃 葉っぱの色＝何日目か：<span class="lg" style="background:hsl(130,55%,40%)"></span>1日目 <span class="lg" style="background:hsl(92,55%,42%)"></span>2日目 <span class="lg" style="background:hsl(47,90%,46%)"></span>3日目 <span class="lg" style="background:hsl(33,92%,48%)"></span>4日目 <span class="lg" style="background:hsl(8,68%,45%)"></span>5日目 <span class="lg" style="background:hsl(22,50%,33%)"></span>6日目 <span class="lg" style="background:hsl(40,5%,47%)"></span>7日目</div>
         <div id="tree"></div>
-        <div class="hint">言葉は7日間ほっておくと枯れてしまう（枯れると一族も一緒に枯れる）。子を登録するか、メモを書くと元気を取り戻す。タップで詳細、栄養剤でも元気に。回復すると、一族（子孫）も20%回復する。言葉を長押ししてドラッグすると、落とした言葉を新しい親にできる（空き地に落とすと根っこになる）。✨のついた合流した言葉（親が2つ以上）は枯れない。🔘ブラックボックスを押すと、根と葉っぱの先っぽだけが見えて、中間は全部黒く隠れる（合流✨は対象外）。</div>
+        <div class="hint">言葉は7日間ほっておくと枯れてしまう（枯れると一族も一緒に枯れる）。子を登録するか、メモを書くと元気を取り戻す。タップで詳細、栄養剤でも元気に。回復すると、一族（子孫）も20%回復する（いちばんの根っこだけ50%回復）。言葉を長押ししてドラッグすると、落とした言葉を新しい親にできる（空き地に落とすと根っこになる）。✨のついた合流した言葉（親が2つ以上）は枯れない。🔘ブラックボックスを押すと、根と葉っぱの先っぽだけが見えて、中間は全部黒く隠れる（合流✨は対象外）。</div>
       </section>
       <aside id="detailPane"></aside>
     </div>
@@ -306,7 +306,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-25-1225';
+const BUILD = '2026-11-26-0505';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
@@ -386,7 +386,25 @@ function descendantsOf(id){
   return out;
 }
 /* 回復行為のとき、一族（生きている子孫）も20%回復する（2026-11-24 本人の指定）。
-   20% = 寿命7日の20% = 1.4日ぶん vitalAt を進める（今より先にはしない）。合流✨は枯れないので対象外。 */
+   20% = 寿命7日の20% = 1.4日ぶん vitalAt を進める（今より先にはしない）。合流✨は枯れないので対象外。
+   追加（2026-11-26 本人の指定）：一族いちばんの根っこ（最上位の祖先）だけは50% = 3.5日ぶん回復する。 */
+function topRootsOf(id){
+  const roots = [];
+  const seen = new Set();
+  let frontier = [id];
+  while(frontier.length){
+    const next = [];
+    frontier.forEach(cid => {
+      if(seen.has(cid)) return; seen.add(cid);
+      const w = wordById(cid); if(!w) return;
+      const ps = (w.parentIds || []).filter(p => wordById(p));
+      if(!ps.length){ if(cid !== id && !w.trashed) roots.push(w); }
+      else next.push(...ps);
+    });
+    frontier = next;
+  }
+  return roots;
+}
 function recoverKin(w){
   const now = Date.now();
   let n = 0;
@@ -396,7 +414,19 @@ function recoverKin(w){
     const nv = Math.min(now, cur + 1.4 * DAY);
     if(nv > cur){ d.vitalAt = new Date(nv).toISOString(); n++; }
   });
-  return n;
+  const rootNames = [];
+  topRootsOf(w.id).forEach(r => {
+    const cur = new Date(r.vitalAt).getTime();
+    const nv = Math.min(now, cur + 3.5 * DAY);
+    if(nv > cur){ r.vitalAt = new Date(nv).toISOString(); rootNames.push(r.name); }
+  });
+  return {n: n, roots: rootNames};
+}
+function kinText(kin){
+  if(!kin) return '';
+  let s = kin.n ? '・一族' + kin.n + '語も20%回復' : '';
+  if(kin.roots && kin.roots.length) s += '・根っこ「' + kin.roots.join('」「') + '」は50%回復';
+  return s;
 }
 function addHistory(by, action, word, detail){
   state.history.push({at: nowISO(), by: by, action: action, word: word || '', detail: detail || ''});
@@ -1019,7 +1049,7 @@ async function detailAction(act, id){
       t.vitalAt = nowISO();
       t.lastNutrientAt = t.vitalAt;
       const kin = recoverKin(t);
-      addHistory(myName, '栄養剤', t.name, '💊 元気を取り戻した（残り' + state.stock.nutrient + '）' + (kin ? ' ・一族' + kin + '語も20%回復' : ''));
+      addHistory(myName, '栄養剤', t.name, '💊 元気を取り戻した（残り' + state.stock.nutrient + '）' + kinText(kin).replace('・', ' ・'));
     }, '💊 ' + w.name + ' に栄養剤をあげたよ');
     return;
   }
@@ -1110,7 +1140,7 @@ function openWordForm(opts){
         // 詳細（メモ）を書くことも「触る」扱い：書かれた言葉は元気を取り戻す（2026-11-14 本人の追加ルール）
         let kin = 0;
         if(memoWritten){ t.vitalAt = nowISO(); kin = recoverKin(t); }
-        addHistory(myName, '編集', t.name, memoWritten ? '内容を更新した（メモを書いて元気を取り戻した' + (kin ? '・一族' + kin + '語も20%回復' : '') + '）' : '内容を更新した');
+        addHistory(myName, '編集', t.name, memoWritten ? '内容を更新した（メモを書いて元気を取り戻した' + kinText(kin) + '）' : '内容を更新した');
       }, '✏️ 保存したよ');
     }else{
       const nid = state.nextId;
@@ -1160,7 +1190,7 @@ function openTrash(){
         const t = wordById(id);
         t.trashed = false; t.trashedAt = null; t.vitalAt = nowISO();
         const kin = recoverKin(t);
-        addHistory(myName, '戻した', t.name, 'ゴミ箱から庭に戻した' + (kin ? '（一族' + kin + '語も20%回復）' : ''));
+        addHistory(myName, '戻した', t.name, 'ゴミ箱から庭に戻した' + (kinText(kin) ? '（' + kinText(kin).replace(/^・/, '') + '）' : ''));
       }, '♻️ 「' + (w ? w.name : '') + '」を庭に戻したよ');
       if(ok) openTrash();
     });
