@@ -114,6 +114,9 @@
   }
   .node:active{transform:scale(.98);}
   .node.sel{outline:2px solid var(--accent); outline-offset:1px; box-shadow:0 0 0 4px rgba(47,125,79,.35), 0 8px 20px rgba(96,64,32,.16);}
+  .node.dragsrc{opacity:.35;}
+  .node.droptarget{outline:3px solid var(--accent); outline-offset:2px; box-shadow:0 0 0 5px rgba(47,125,79,.35), 0 8px 20px rgba(96,64,32,.16);}
+  .node.dragghost{position:fixed; z-index:200; pointer-events:none; opacity:.92; box-shadow:0 14px 30px rgba(96,64,32,.3);}
   .node.bbox{background:#14161a; border-color:#14161a; cursor:default; box-shadow:0 8px 20px rgba(20,22,26,.28); align-items:center;}
   .node.bbox:active{transform:none;}
   .node.bbox .bb{color:#454b54; font-size:13px; letter-spacing:.4em; padding-left:.4em;}
@@ -286,7 +289,7 @@
       <section id="treePane">
         <div class="hint">🍃 葉っぱの色＝何日目か：<span class="lg" style="background:hsl(130,55%,40%)"></span>1日目 <span class="lg" style="background:hsl(92,55%,42%)"></span>2日目 <span class="lg" style="background:hsl(47,90%,46%)"></span>3日目 <span class="lg" style="background:hsl(33,92%,48%)"></span>4日目 <span class="lg" style="background:hsl(8,68%,45%)"></span>5日目 <span class="lg" style="background:hsl(22,50%,33%)"></span>6日目 <span class="lg" style="background:hsl(40,5%,47%)"></span>7日目</div>
         <div id="tree"></div>
-        <div class="hint">言葉は7日間ほっておくと枯れてしまう（枯れると一族も一緒に枯れる）。子を登録するか、メモを書くと元気を取り戻す。タップで詳細、栄養剤でも元気に。回復すると、一族（子孫）も20%回復する。✨のついた合流した言葉（親が2つ以上）は枯れない。🔘ブラックボックスを押すと、根と葉っぱの先っぽだけが見えて、中間は全部黒く隠れる（合流✨は対象外）。</div>
+        <div class="hint">言葉は7日間ほっておくと枯れてしまう（枯れると一族も一緒に枯れる）。子を登録するか、メモを書くと元気を取り戻す。タップで詳細、栄養剤でも元気に。回復すると、一族（子孫）も20%回復する。言葉を長押ししてドラッグすると、落とした言葉を新しい親にできる（空き地に落とすと根っこになる）。✨のついた合流した言葉（親が2つ以上）は枯れない。🔘ブラックボックスを押すと、根と葉っぱの先っぽだけが見えて、中間は全部黒く隠れる（合流✨は対象外）。</div>
       </section>
       <aside id="detailPane"></aside>
     </div>
@@ -303,7 +306,7 @@
 <script>
 "use strict";
 /* ================= config ================= */
-const BUILD = '2026-11-24-2335';
+const BUILD = '2026-11-25-1225';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = '6ff100bb-7269-4959-92cb-c0bc06a3e0e6';
@@ -733,6 +736,106 @@ function renderTree(){
   alive.forEach(w => { html += nodeHTML(w, xy(w)); });
   html += '</div></div>';
   box.innerHTML = html;
+}
+
+/* ================= long-press drag: reparent ================= */
+let dragState = null;
+let suppressNodeClick = false;
+function setupDragReparent(){
+  const box = $('#tree'); if(!box) return;
+  box.addEventListener('touchmove', e => { if(dragState && dragState.active) e.preventDefault(); }, {passive:false});
+  box.addEventListener('pointerdown', e => {
+    if(dragState) return;
+    const node = e.target.closest && e.target.closest('.node[data-open]');
+    if(!node) return;
+    dragState = {id: Number(node.dataset.open), pointerId: e.pointerId, sx: e.clientX, sy: e.clientY, active: false, moved: false, timer: null, ghost: null, targetId: null};
+    dragState.timer = setTimeout(() => startDrag(), 450);
+  });
+  window.addEventListener('pointermove', e => {
+    if(!dragState || e.pointerId !== dragState.pointerId) return;
+    if(!dragState.active){
+      if(Math.hypot(e.clientX - dragState.sx, e.clientY - dragState.sy) > 12) cancelDrag();
+      return;
+    }
+    if(Math.hypot(e.clientX - dragState.sx, e.clientY - dragState.sy) > 24) dragState.moved = true;
+    moveDrag(e.clientX, e.clientY);
+  });
+  function up(e){
+    if(!dragState || (e.pointerId !== undefined && e.pointerId !== dragState.pointerId)) return;
+    if(dragState.active){
+      suppressNodeClick = true;
+      setTimeout(() => { suppressNodeClick = false; }, 400);
+      finishDrag();
+    }else cancelDrag();
+  }
+  window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', up);
+}
+function startDrag(){
+  if(!dragState || dragState.active) return;
+  const w = wordById(dragState.id);
+  if(!w){ dragState = null; return; }
+  dragState.active = true;
+  const src = document.querySelector('.node[data-open="' + dragState.id + '"]');
+  if(src) src.classList.add('dragsrc');
+  const g = document.createElement('div');
+  g.className = 'node dragghost';
+  g.innerHTML = '<div class="n1"><span class="nm">' + esc(w.name) + '</span></div>';
+  document.body.appendChild(g);
+  dragState.ghost = g;
+  showBanner('「' + w.name + '」を持ち上げたよ。落とした言葉が新しい親になるよ（空き地に落とすと根っこ）', false);
+  moveDrag(dragState.sx, dragState.sy);
+}
+function moveDrag(x, y){
+  if(!dragState || !dragState.ghost) return;
+  dragState.ghost.style.left = (x - 80) + 'px';
+  dragState.ghost.style.top = (y - 52) + 'px';
+  document.querySelectorAll('.node.droptarget').forEach(n => n.classList.remove('droptarget'));
+  dragState.targetId = null;
+  const el = document.elementFromPoint(x, y);
+  const node = el && el.closest ? el.closest('.node[data-open]') : null;
+  if(node && Number(node.dataset.open) !== dragState.id){
+    node.classList.add('droptarget');
+    dragState.targetId = Number(node.dataset.open);
+  }
+}
+function cancelDrag(){
+  if(!dragState) return;
+  clearTimeout(dragState.timer);
+  if(dragState.ghost) dragState.ghost.remove();
+  document.querySelectorAll('.node.dragsrc, .node.droptarget').forEach(n => n.classList.remove('dragsrc', 'droptarget'));
+  dragState = null;
+}
+async function finishDrag(){
+  const ds = dragState;
+  const moved = ds.moved, targetId = ds.targetId, dragId = ds.id;
+  cancelDrag();
+  if(!moved) return;
+  const w = wordById(dragId); if(!w) return;
+  if(targetId == null){
+    if(!(w.parentIds || []).length) return;
+    if(!confirm('「' + w.name + '」を根っこ（親なし）にする？')) return;
+    await commit(() => {
+      const t = wordById(dragId);
+      t.parentIds = [];
+      addHistory(myName, '親を変更', t.name, '根っこにした（長押しドラッグ）');
+    }, '🌱 「' + w.name + '」を根っこにしたよ');
+    return;
+  }
+  const target = wordById(targetId); if(!target) return;
+  if(descendantsOf(dragId).some(d => d.id === targetId)){
+    showBanner('その言葉は「' + w.name + '」の子孫だから親にできないよ', true);
+    return;
+  }
+  const cur = w.parentIds || [];
+  if(cur.length === 1 && cur[0] === targetId) return;
+  await commit(() => {
+    const t = wordById(dragId);
+    t.parentIds = [targetId];
+    const p = wordById(targetId);
+    if(p && !p.trashed){ p.vitalAt = nowISO(); recoverKin(p); }
+    addHistory(myName, '親を変更', t.name, '新しい親：' + target.name + '（長押しドラッグ）');
+  }, '🌳 「' + w.name + '」の親を「' + target.name + '」にしたよ');
 }
 
 /* ================= header / views ================= */
@@ -1177,6 +1280,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initGate();
   $('#btnNew').addEventListener('click', () => { showMain(); openWordForm({}); });
   setupPinch();
+  setupDragReparent();
   $('#btnTrash').addEventListener('click', openTrash);
   $('#btnHistory').addEventListener('click', openHistory);
   $('#btnSearch').addEventListener('click', openSearch);
@@ -1203,6 +1307,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   $('#scrim').addEventListener('click', () => { selectedId = null; closeSheet(); renderTreeSel(); });
   document.addEventListener('click', (e) => {
+    if(suppressNodeClick) return;
     const n = e.target.closest('[data-open]');
     if(n && n.classList.contains('node')) openWord(Number(n.dataset.open));
   });
