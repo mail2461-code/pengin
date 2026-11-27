@@ -86,7 +86,7 @@
 
 <header>
   <div class="ttl">ペキテイル <span style="font-size:12px; color:var(--sub); font-weight:400;" id="buildStr"></span></div>
-  <div class="sub">ペキとテイルの文通チャット＆知のまとめコーナー</div>
+  <div class="sub">ペキとテイルの文通チャット＆知のまとめコーナー <button class="btn sub2" id="refreshBtn" style="padding:4px 12px; font-size:13px; border-radius:999px; margin-left:6px;">↻ 更新</button></div>
 </header>
 <div class="tabs" style="max-width:760px; margin:0 auto;">
   <div class="tab on" id="tabChat">💬 チャット</div>
@@ -109,7 +109,7 @@
 </div>
 
 <script>
-const BUILD = '2026-11-27-1245';
+const BUILD = '2026-11-27-1250';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = 'be67a0d9-154c-408c-a300-ffcda2800341';
@@ -257,6 +257,10 @@ $('#chatSend').onclick = async () => {
     state.chat.push({id: state.nextChatId++, author: myName, text, at: new Date().toISOString()});
   }, '送ったよ');
   if(ok){ ta.value = ''; window.scrollTo({top: document.body.scrollHeight, behavior:'smooth'}); }
+};
+$('#refreshBtn').onclick = async () => {
+  try{ await loadState(); render(); showBanner('最新の状態にしたよ', false); }
+  catch(e){ showBanner(e.message || '更新できなかったよ', true); }
 };
 $('#switchUser').onclick = e => {
   e.preventDefault();
