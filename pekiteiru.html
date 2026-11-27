@@ -57,6 +57,8 @@
   .treewrap svg{width:100%; height:auto; display:block;}
   .branch{cursor:pointer;}
   .branch:hover .bleaf{opacity:.75;}
+  .branch .pill{fill:#fffdf8; stroke:#d9cdae; stroke-width:1;}
+  .branch:hover .pill{stroke:var(--accent); stroke-width:1.6;}
   .branch text{font-size:13px; fill:var(--text); font-weight:600;}
   .branch:hover text{fill:var(--accent);}
   /* gate */
@@ -128,7 +130,7 @@
 </div>
 
 <script>
-const BUILD = '2026-11-27-2133';
+const BUILD = '2026-11-27-2143';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = 'be67a0d9-154c-408c-a300-ffcda2800341';
@@ -336,7 +338,9 @@ function renderTree(){
   const el = $('#treeMain');
   if(!el) return;
   const W = 780, groundY = 500, H = 560;
-  const centers = {seigo: 140, kaiso: 390, saiki: 640};
+  // each tree owns a third of the width; branches and labels stay inside it
+  const centers = {seigo: 130, kaiso: 390, saiki: 650};
+  const zones = {seigo: [0, 260], kaiso: [260, 520], saiki: [520, 780]};
   const byTree = {seigo: [], kaiso: [], saiki: []};
   state.knowledge.slice().sort((a,b) => a.id - b.id).forEach(k => byTree[treeOf(k)].push(k));
   let svg = '';
@@ -346,7 +350,11 @@ function renderTree(){
   Object.keys(TREES).forEach(key => {
     const T = TREES[key], cx = centers[key], items = byTree[key];
     const n = items.length;
-    const trunkTop = groundY - 120 - n * 26;
+    const zx0 = zones[key][0], zx1 = zones[key][1];
+    // attach heights spread up the trunk so the upper space is used too
+    const step = n > 1 ? Math.min(62, 250 / (n - 1)) : 0;
+    const slotY = i => groundY - 96 - i * step;
+    const trunkTop = n ? Math.max(56, slotY(n - 1) - 58) : groundY - 120;
     // roots & trunk (tapers via two paths)
     svg += '<path d="M' + (cx - 13) + ' ' + groundY + ' C ' + (cx - 9) + ' ' + (groundY - 70) + ', ' + (cx - 6) + ' ' + (trunkTop + 40) + ', ' + (cx - 4) + ' ' + trunkTop +
            ' L ' + (cx + 4) + ' ' + trunkTop +
@@ -363,23 +371,29 @@ function renderTree(){
       // deterministic pseudo-random from id for an organic feel
       const rnd = Math.abs(Math.sin(k.id * 127.1 + i * 311.7)) % 1;
       const side = i % 2 === 0 ? -1 : 1;
-      const level = Math.floor(i / 2);
-      const baseY = groundY - 74 - level * 46 - rnd * 10;
-      const len = 62 + rnd * 30 + (i % 3) * 8;
-      const tipX = cx + side * len;
-      const tipY = baseY - 40 - rnd * 16;
-      const ctrlX = cx + side * len * 0.45;
-      const ctrlY = baseY - 8;
-      const wdt = Math.max(3, 7 - level * 0.9);
-      const title = k.title.length > 15 ? k.title.slice(0, 15) + '…' : k.title;
-      const anchor = side < 0 ? 'end' : 'start';
-      const tx = tipX + side * 10;
+      const baseY = slotY(i);
+      const reach = 72 + rnd * 26; // max 98 < zone half-width 130
+      const tipX = cx + side * reach;
+      const tipY = baseY - 42 - rnd * 10;
+      const ctrlX = cx + side * reach * 0.45;
+      const ctrlY = baseY - 6;
+      const wdt = Math.max(3, 7.5 - i * 0.55);
+      // label: a white pill tag above the tip, clamped inside this tree's zone
+      let title = k.title || '';
+      if(title.length > 12) title = title.slice(0, 12) + '…';
+      let tw = 0;
+      for(const ch of title) tw += (ch.codePointAt(0) > 0xFF ? 13.2 : 7.4);
+      const pillW = tw + 18, pillH = 24;
+      let pcx = Math.min(Math.max(tipX, zx0 + pillW / 2 + 4), zx1 - pillW / 2 - 4);
+      if(pillW > zx1 - zx0 - 8) pcx = (zx0 + zx1) / 2;
+      const pillX = pcx - pillW / 2, pillY = Math.max(6, tipY - 48);
       svg += '<g class="branch" data-k="' + k.id + '">' +
         '<path d="M' + cx + ' ' + baseY + ' Q ' + ctrlX + ' ' + ctrlY + ' ' + tipX + ' ' + tipY + '" stroke="#8a6844" stroke-width="' + wdt.toFixed(1) + '" fill="none" stroke-linecap="round"/>' +
         '<circle class="bleaf" cx="' + tipX + '" cy="' + tipY + '" r="11" fill="' + T.leaf + '" opacity="0.9"/>' +
         '<circle class="bleaf" cx="' + (tipX + side * 9) + '" cy="' + (tipY - 8) + '" r="7.5" fill="' + T.leaf2 + '" opacity="0.9"/>' +
         '<circle class="bleaf" cx="' + (tipX - side * 7) + '" cy="' + (tipY - 10) + '" r="6" fill="' + T.leaf + '" opacity="0.75"/>' +
-        '<text x="' + tx + '" y="' + (tipY + 4) + '" text-anchor="' + anchor + '">' + esc(title) + '</text>' +
+        '<rect class="pill" x="' + pillX.toFixed(1) + '" y="' + pillY.toFixed(1) + '" width="' + pillW.toFixed(1) + '" height="' + pillH + '" rx="12"/>' +
+        '<text x="' + pcx.toFixed(1) + '" y="' + (pillY + 16.5).toFixed(1) + '" text-anchor="middle">' + esc(title) + '</text>' +
         '</g>';
     });
     // tree label under the ground
