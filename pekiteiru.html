@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ペキテイル</title>
+<style>
+  :root{
+    --bg:#f7f3ec; --card:#fffdf8; --line:#e3d9c8; --text:#33302a; --sub:#8a8172;
+    --peki:#2e7d9b; --tail:#b0622f; --pengin:#5b7553; --mokkin:#7a5b8f;
+    --accent:#d98a2b;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif; font-size:15px; line-height:1.6;}
+  header{position:sticky; top:0; z-index:5; background:var(--bg); border-bottom:1px solid var(--line); padding:10px 14px 8px;}
+  header .ttl{font-size:19px; font-weight:700; letter-spacing:.04em;}
+  header .sub{font-size:12px; color:var(--sub);}
+  .tabs{display:flex; gap:8px; padding:10px 14px 0;}
+  .tab{flex:1; text-align:center; padding:9px 0; border:1px solid var(--line); border-bottom:none; border-radius:12px 12px 0 0; background:#efe8da; color:var(--sub); font-weight:600; cursor:pointer;}
+  .tab.on{background:var(--card); color:var(--text);}
+  main{max-width:760px; margin:0 auto; padding:0 14px 90px;}
+  .panel{background:var(--card); border:1px solid var(--line); border-radius:0 0 14px 14px; padding:14px; min-height:50vh;}
+  /* chat */
+  .msg{display:flex; gap:8px; margin:0 0 14px;}
+  .msg .av{flex:0 0 34px; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; color:#fff; margin-top:2px;}
+  .msg .bd{flex:1; min-width:0;}
+  .msg .hd{font-size:12px; color:var(--sub); margin-bottom:2px;}
+  .msg .hd b{font-size:13px;}
+  .msg .tx{background:#fff; border:1px solid var(--line); border-radius:4px 12px 12px 12px; padding:8px 11px; white-space:pre-wrap; word-break:break-word;}
+  .a-peki .av{background:var(--peki);} .a-peki .hd b{color:var(--peki);}
+  .a-tail .av{background:var(--tail);} .a-tail .hd b{color:var(--tail);}
+  .a-pengin .av{background:var(--pengin);} .a-pengin .hd b{color:var(--pengin);}
+  .a-mokkin .av{background:var(--mokkin);} .a-mokkin .hd b{color:var(--mokkin);}
+  .composer{position:fixed; left:0; right:0; bottom:0; background:var(--bg); border-top:1px solid var(--line); padding:10px 14px calc(10px + env(safe-area-inset-bottom));}
+  .composer .in{max-width:760px; margin:0 auto; display:flex; gap:8px; align-items:flex-end;}
+  .composer textarea{flex:1; border:1px solid var(--line); border-radius:12px; padding:9px 11px; font-size:15px; font-family:inherit; resize:none; max-height:110px; background:#fff;}
+  .btn{border:none; border-radius:12px; padding:10px 16px; font-size:15px; font-weight:700; background:var(--accent); color:#fff; cursor:pointer;}
+  .btn.sub2{background:#efe8da; color:var(--text); border:1px solid var(--line);}
+  .btn:active{opacity:.75;}
+  /* knowledge */
+  .kitem{border:1px solid var(--line); border-radius:12px; padding:11px 13px; margin-bottom:10px; background:#fff; cursor:pointer;}
+  .kitem .kt{font-weight:700; font-size:16px;}
+  .kitem .km{font-size:12px; color:var(--sub);}
+  .kitem .kp{font-size:13.5px; color:#55503f; margin-top:3px; white-space:pre-wrap; word-break:break-word; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+  .kview .kt{font-size:19px; font-weight:700; margin-bottom:2px;}
+  .kview .km{font-size:12px; color:var(--sub); margin-bottom:10px;}
+  .kview .kb{white-space:pre-wrap; word-break:break-word; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px 13px;}
+  .rowbtns{display:flex; gap:8px; margin:12px 0;}
+  input.tf, textarea.tf{width:100%; border:1px solid var(--line); border-radius:12px; padding:9px 11px; font-size:15px; font-family:inherit; background:#fff; margin-bottom:10px;}
+  textarea.tf{min-height:180px; resize:vertical;}
+  /* gate */
+  #gate{position:fixed; inset:0; background:var(--bg); z-index:50; display:flex; align-items:center; justify-content:center; padding:20px;}
+  #gate .box{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px; width:100%; max-width:340px; text-align:center;}
+  #gate input{width:100%; border:1px solid var(--line); border-radius:12px; padding:10px; font-size:16px; text-align:center; margin:10px 0;}
+  .names{display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin:8px 0 4px;}
+  .names button{border:1px solid var(--line); background:#fff; border-radius:999px; padding:6px 13px; font-size:14px; cursor:pointer;}
+  .names button.on{background:var(--accent); color:#fff; border-color:var(--accent); font-weight:700;}
+  #gateErr{color:#c0392b; font-size:13px; min-height:18px;}
+  #banner{position:fixed; top:12px; left:50%; transform:translateX(-50%) translateY(-80px); background:#33302a; color:#fff; padding:9px 16px; border-radius:999px; font-size:13.5px; z-index:60; transition:transform .25s; max-width:92vw; text-align:center;}
+  #banner.show{transform:translateX(-50%) translateY(0);}
+  #banner.err{background:#a33;}
+  .empty{color:var(--sub); text-align:center; padding:26px 0; font-size:14px;}
+  .whoami{font-size:12px; color:var(--sub); text-align:right; padding:6px 2px 0;}
+  .whoami a{color:var(--sub);}
+</style>
+</head>
+<body>
+<div id="banner"></div>
+
+<div id="gate">
+  <div class="box">
+    <div style="font-size:22px; font-weight:700;">ペキテイル</div>
+    <div style="font-size:13px; color:var(--sub);">ペキとテイルのおしゃべりと、知のまとめの場所</div>
+    <input id="gatePass" type="password" inputmode="numeric" placeholder="パスワード" autocomplete="off">
+    <div style="font-size:13px; color:var(--sub);">あなたはだれ？</div>
+    <div class="names" id="gateNames">
+      <button data-n="ペキ">ペキ</button>
+      <button data-n="テイル">テイル</button>
+      <button data-n="ぺん銀">ぺん銀</button>
+      <button data-n="もっ金">もっ金</button>
+    </div>
+    <div id="gateErr"></div>
+    <button class="btn" id="gateGo" style="width:100%; margin-top:6px;">はいる</button>
+  </div>
+</div>
+
+<header>
+  <div class="ttl">ペキテイル <span style="font-size:12px; color:var(--sub); font-weight:400;" id="buildStr"></span></div>
+  <div class="sub">ペキとテイルの文通チャット＆知のまとめコーナー</div>
+</header>
+<div class="tabs" style="max-width:760px; margin:0 auto;">
+  <div class="tab on" id="tabChat">💬 チャット</div>
+  <div class="tab" id="tabKnow">📚 知のまとめ</div>
+</div>
+<main>
+  <div class="panel" id="panelChat">
+    <div id="chatList"></div>
+    <div class="whoami"><span id="whoLabel"></span> として書く（<a href="#" id="switchUser">かえる</a>）</div>
+  </div>
+  <div class="panel" id="panelKnow" style="display:none;">
+    <div id="knowMain"></div>
+  </div>
+</main>
+<div class="composer" id="composer">
+  <div class="in">
+    <textarea id="chatInput" rows="2" placeholder="メッセージを書く"></textarea>
+    <button class="btn" id="chatSend">送る</button>
+  </div>
+</div>
+
+<script>
+const BUILD = '2026-11-27-1245';
+const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
+const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
+const ROW_ID = 'be67a0d9-154c-408c-a300-ffcda2800341';
+const PASS = '2501';
+const $ = s => document.querySelector(s);
+const AUTHORS = {
+  'ペキ':   {cls:'a-peki',   icon:'🐧'},
+  'テイル': {cls:'a-tail',   icon:'🌿'},
+  'ぺん銀': {cls:'a-pengin', icon:'👑'},
+  'もっ金': {cls:'a-mokkin', icon:'👑'}
+};
+let state = null, baseContent = null, myName = localStorage.getItem('pekiteiru_name') || '';
+let tab = 'chat', openKnowId = null, editingKnowId = null; // editingKnowId: 'new' | id | null
+
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+let bannerTimer = null;
+function showBanner(msg, isErr){
+  const b = $('#banner'); b.textContent = msg; b.className = 'show' + (isErr ? ' err' : '');
+  clearTimeout(bannerTimer); bannerTimer = setTimeout(() => { b.className = ''; }, 5000);
+}
+function fmtTime(iso){
+  try{ const d = new Date(iso); return (d.getMonth()+1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); }
+  catch(e){ return ''; }
+}
+
+/* ================= supabase ================= */
+async function sbFetch(){
+  const res = await fetch(SB_URL + '/rest/v1/wiki_pages?id=eq.' + ROW_ID + '&select=content,updated_at', {headers:{'apikey':SB_KEY, 'Authorization':'Bearer ' + SB_KEY}});
+  if(!res.ok) throw new Error('読込に失敗したよ（' + res.status + '）');
+  const rows = await res.json();
+  if(!rows.length) throw new Error('データの行が見つからないよ');
+  return rows[0].content;
+}
+function normalize(st){
+  st.chat = Array.isArray(st.chat) ? st.chat : [];
+  st.knowledge = Array.isArray(st.knowledge) ? st.knowledge : [];
+  st.nextChatId = st.nextChatId || (st.chat.reduce((m,c)=>Math.max(m,c.id),0) + 1);
+  st.nextKnowledgeId = st.nextKnowledgeId || (st.knowledge.reduce((m,k)=>Math.max(m,k.id),0) + 1);
+  return st;
+}
+async function loadState(){
+  const content = await sbFetch();
+  baseContent = content;
+  state = normalize(JSON.parse(content));
+}
+async function saveState(){
+  const fresh = await sbFetch();
+  if(fresh !== baseContent){
+    showBanner('誰かが更新したみたい。再読み込みするね', true);
+    await loadState(); render();
+    throw new Error('conflict');
+  }
+  const body = JSON.stringify(state);
+  const res = await fetch(SB_URL + '/rest/v1/wiki_pages?id=eq.' + ROW_ID, {
+    method:'PATCH',
+    headers:{'apikey':SB_KEY, 'Authorization':'Bearer ' + SB_KEY, 'Content-Type':'application/json', 'Prefer':'return=minimal'},
+    body: JSON.stringify({content: body})
+  });
+  if(!res.ok) throw new Error('保存に失敗したよ（' + res.status + '）');
+  baseContent = body;
+}
+async function commit(mutFn, okMsg){
+  try{ mutFn(); await saveState(); render(); if(okMsg) showBanner(okMsg, false); return true; }
+  catch(e){ if(e.message !== 'conflict') showBanner(e.message || 'うまくいかなかったよ', true); return false; }
+}
+
+/* ================= render ================= */
+function render(){
+  $('#buildStr').textContent = BUILD;
+  $('#whoLabel').textContent = myName;
+  $('#tabChat').className = 'tab' + (tab === 'chat' ? ' on' : '');
+  $('#tabKnow').className = 'tab' + (tab === 'know' ? ' on' : '');
+  $('#panelChat').style.display = tab === 'chat' ? '' : 'none';
+  $('#panelKnow').style.display = tab === 'know' ? '' : 'none';
+  $('#composer').style.display = tab === 'chat' ? '' : 'none';
+  renderChat(); renderKnow();
+}
+function renderChat(){
+  const el = $('#chatList');
+  if(!state.chat.length){ el.innerHTML = '<div class="empty">まだ何もないよ。最初の一通をどうぞ。</div>'; return; }
+  el.innerHTML = state.chat.map(c => {
+    const a = AUTHORS[c.author] || {cls:'', icon:'💬'};
+    return '<div class="msg ' + a.cls + '"><div class="av">' + a.icon + '</div><div class="bd">' +
+      '<div class="hd"><b>' + esc(c.author) + '</b> ・ ' + fmtTime(c.at) + '</div>' +
+      '<div class="tx">' + esc(c.text) + '</div></div></div>';
+  }).join('');
+}
+function renderKnow(){
+  const el = $('#knowMain');
+  if(editingKnowId !== null){
+    const k = editingKnowId === 'new' ? {title:'', body:''} : state.knowledge.find(x => x.id === editingKnowId);
+    if(!k){ editingKnowId = null; renderKnow(); return; }
+    el.innerHTML =
+      '<input class="tf" id="kTitle" placeholder="タイトル" value="' + esc(k.title) + '">' +
+      '<textarea class="tf" id="kBody" placeholder="まとめの本文（出典やリンクもここに）">' + esc(k.body) + '</textarea>' +
+      '<div class="rowbtns"><button class="btn" id="kSave">保存する</button><button class="btn sub2" id="kCancel">やめる</button></div>';
+    $('#kSave').onclick = async () => {
+      const title = $('#kTitle').value.trim(), body = $('#kBody').value;
+      if(!title){ showBanner('タイトルを入れてね', true); return; }
+      const now = new Date().toISOString();
+      const ok = await commit(() => {
+        if(editingKnowId === 'new'){
+          state.knowledge.push({id: state.nextKnowledgeId++, title, body, updatedBy: myName, updatedAt: now, createdBy: myName, createdAt: now});
+        } else {
+          const t = state.knowledge.find(x => x.id === editingKnowId);
+          t.title = title; t.body = body; t.updatedBy = myName; t.updatedAt = now;
+        }
+      }, '保存したよ');
+      if(ok){ const id = editingKnowId === 'new' ? state.knowledge[state.knowledge.length-1].id : editingKnowId; editingKnowId = null; openKnowId = id; render(); }
+    };
+    $('#kCancel').onclick = () => { editingKnowId = null; render(); };
+    return;
+  }
+  if(openKnowId !== null){
+    const k = state.knowledge.find(x => x.id === openKnowId);
+    if(!k){ openKnowId = null; renderKnow(); return; }
+    el.innerHTML =
+      '<div class="kview"><div class="kt">' + esc(k.title) + '</div>' +
+      '<div class="km">最終更新：' + esc(k.updatedBy || '') + ' ・ ' + fmtTime(k.updatedAt) + '</div>' +
+      '<div class="kb">' + esc(k.body) + '</div></div>' +
+      '<div class="rowbtns"><button class="btn sub2" id="kBack">← 一覧へ</button><button class="btn" id="kEdit">編集する</button></div>';
+    $('#kBack').onclick = () => { openKnowId = null; render(); };
+    $('#kEdit').onclick = () => { editingKnowId = k.id; render(); };
+    return;
+  }
+  let html = '<div class="rowbtns"><button class="btn" id="kNew">＋ 新しいまとめ</button></div>';
+  if(!state.knowledge.length) html += '<div class="empty">まだまとめがないよ。△のこと、哲学者や科学者の知見を、ここに育てていく。</div>';
+  html += state.knowledge.slice().sort((a,b) => (b.updatedAt||'').localeCompare(a.updatedAt||'')).map(k =>
+    '<div class="kitem" data-k="' + k.id + '"><div class="kt">' + esc(k.title) + '</div>' +
+    '<div class="km">' + esc(k.updatedBy || '') + ' ・ ' + fmtTime(k.updatedAt) + '</div>' +
+    '<div class="kp">' + esc(k.body) + '</div></div>'
+  ).join('');
+  el.innerHTML = html;
+  $('#kNew').onclick = () => { editingKnowId = 'new'; render(); };
+  el.querySelectorAll('[data-k]').forEach(n => n.onclick = () => { openKnowId = Number(n.dataset.k); render(); });
+}
+
+/* ================= events ================= */
+$('#tabChat').onclick = () => { tab = 'chat'; render(); };
+$('#tabKnow').onclick = () => { tab = 'know'; render(); };
+$('#chatSend').onclick = async () => {
+  const ta = $('#chatInput'); const text = ta.value.trim();
+  if(!text) return;
+  const ok = await commit(() => {
+    state.chat.push({id: state.nextChatId++, author: myName, text, at: new Date().toISOString()});
+  }, '送ったよ');
+  if(ok){ ta.value = ''; window.scrollTo({top: document.body.scrollHeight, behavior:'smooth'}); }
+};
+$('#switchUser').onclick = e => {
+  e.preventDefault();
+  localStorage.removeItem('pekiteiru_ok_2501');
+  location.reload();
+};
+
+/* gate */
+let gateName = myName || '';
+function paintGateNames(){
+  document.querySelectorAll('#gateNames button').forEach(b => b.className = b.dataset.n === gateName ? 'on' : '');
+}
+document.querySelectorAll('#gateNames button').forEach(b => b.onclick = () => { gateName = b.dataset.n; paintGateNames(); });
+$('#gateGo').onclick = async () => {
+  if($('#gatePass').value.trim() !== PASS){ $('#gateErr').textContent = 'パスワードが違うみたい'; return; }
+  if(!gateName){ $('#gateErr').textContent = 'だれか選んでね'; return; }
+  myName = gateName;
+  localStorage.setItem('pekiteiru_ok_2501', '1');
+  localStorage.setItem('pekiteiru_name', myName);
+  $('#gate').style.display = 'none';
+  try{ await loadState(); render(); }catch(e){ showBanner(e.message, true); }
+};
+
+/* build self-check: if a newer build is live, reload once */
+(async () => {
+  try{
+    const res = await fetch(location.pathname.split('/').pop() || 'pekiteiru.html', {cache:'no-store'});
+    const t = await res.text();
+    const m = t.match(/const BUILD = '([^']+)'/);
+    if(m && m[1] !== BUILD && sessionStorage.getItem('pekiteiruBuildReload') !== m[1]){
+      sessionStorage.setItem('pekiteiruBuildReload', m[1]);
+      location.reload();
+    }
+  }catch(e){}
+})();
+
+/* init */
+(async () => {
+  $('#buildStr').textContent = BUILD;
+  paintGateNames();
+  if(localStorage.getItem('pekiteiru_ok_2501') === '1' && myName){
+    $('#gate').style.display = 'none';
+    try{ await loadState(); render(); }catch(e){ showBanner(e.message, true); }
+  }
+})();
+</script>
+</body>
+</html>
