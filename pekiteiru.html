@@ -50,8 +50,15 @@
   .kview .kb{white-space:pre-wrap; word-break:break-word; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px 13px;}
   .svgbox{background:#fffdf6; border:1px dashed var(--line); border-radius:10px; padding:8px; margin:8px 0; white-space:normal;}
   .rowbtns{display:flex; gap:8px; margin:12px 0;}
-  input.tf, textarea.tf{width:100%; border:1px solid var(--line); border-radius:12px; padding:9px 11px; font-size:15px; font-family:inherit; background:#fff; margin-bottom:10px;}
+  input.tf, textarea.tf, select.tf{width:100%; border:1px solid var(--line); border-radius:12px; padding:9px 11px; font-size:15px; font-family:inherit; background:#fff; margin-bottom:10px;}
   textarea.tf{min-height:180px; resize:vertical;}
+  /* tree view */
+  .treewrap{background:linear-gradient(#f3ecd9, #fdfaf1); border:1px solid var(--line); border-radius:12px; padding:6px 2px 2px;}
+  .treewrap svg{width:100%; height:auto; display:block;}
+  .branch{cursor:pointer;}
+  .branch:hover .bleaf{opacity:.75;}
+  .branch text{font-size:13px; fill:var(--text); font-weight:600;}
+  .branch:hover text{fill:var(--accent);}
   /* gate */
   #gate{position:fixed; inset:0; background:var(--bg); z-index:50; display:flex; align-items:center; justify-content:center; padding:20px;}
   #gate .box{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px; width:100%; max-width:340px; text-align:center;}
@@ -98,6 +105,7 @@
 <div class="tabs" style="max-width:760px; margin:0 auto;">
   <div class="tab on" id="tabChat">💬 チャット</div>
   <div class="tab" id="tabKnow">📚 知のまとめ</div>
+  <div class="tab" id="tabTree">🌳 木</div>
 </div>
 </div>
 <main>
@@ -108,6 +116,9 @@
   <div class="panel" id="panelKnow" style="display:none;">
     <div id="knowMain"></div>
   </div>
+  <div class="panel" id="panelTree" style="display:none;">
+    <div id="treeMain"></div>
+  </div>
 </main>
 <div class="composer" id="composer">
   <div class="in">
@@ -117,7 +128,7 @@
 </div>
 
 <script>
-const BUILD = '2026-11-27-1455';
+const BUILD = '2026-11-27-2133';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = 'be67a0d9-154c-408c-a300-ffcda2800341';
@@ -131,6 +142,22 @@ const AUTHORS = {
   'もっ金': {cls:'a-mokkin', icon:'👑'},
   'ねむ':   {cls:'a-nemu',   icon:'🐱'}
 };
+const TREES = {
+  seigo: {name:'整合の木',   owner:'テイル', color:'#b0622f', leaf:'#7fae5c', leaf2:'#a9c97e'},
+  kaiso: {name:'階層性の木', owner:'みゅず', color:'#c2517d', leaf:'#5c9e8f', leaf2:'#8fc4a9'},
+  saiki: {name:'再帰性の木', owner:'ペキ',   color:'#2e7d9b', leaf:'#5b8fc4', leaf2:'#93bce0'}
+};
+function treeOf(k){
+  if(k.tree && TREES[k.tree]) return k.tree;
+  const t = k.title || '';
+  if(t.includes('整合')) return 'seigo';
+  if(t.includes('再帰')) return 'saiki';
+  if(t.includes('階層') || t.includes('枠') || t.includes('スケール')) return 'kaiso';
+  if(k.createdBy === 'テイル') return 'seigo';
+  if(k.createdBy === 'みゅず') return 'kaiso';
+  if(k.createdBy === 'ペキ') return 'saiki';
+  return 'seigo';
+}
 let state = null, baseContent = null, myName = localStorage.getItem('pekiteiru_name') || '';
 let tab = 'chat', openKnowId = null, editingKnowId = null; // editingKnowId: 'new' | id | null
 
@@ -229,10 +256,12 @@ function render(){
   $('#whoLabel').textContent = myName;
   $('#tabChat').className = 'tab' + (tab === 'chat' ? ' on' : '');
   $('#tabKnow').className = 'tab' + (tab === 'know' ? ' on' : '');
+  $('#tabTree').className = 'tab' + (tab === 'tree' ? ' on' : '');
   $('#panelChat').style.display = tab === 'chat' ? '' : 'none';
   $('#panelKnow').style.display = tab === 'know' ? '' : 'none';
+  $('#panelTree').style.display = tab === 'tree' ? '' : 'none';
   $('#composer').style.display = tab === 'chat' ? '' : 'none';
-  renderChat(); renderKnow();
+  renderChat(); renderKnow(); renderTree();
 }
 function renderChat(){
   const el = $('#chatList');
@@ -249,20 +278,29 @@ function renderKnow(){
   if(editingKnowId !== null){
     const k = editingKnowId === 'new' ? {title:'', body:''} : state.knowledge.find(x => x.id === editingKnowId);
     if(!k){ editingKnowId = null; renderKnow(); return; }
+    const curTree = k.tree && TREES[k.tree] ? k.tree : '';
+    const treeOpts = '<option value=""' + (curTree === '' ? ' selected' : '') + '>自動（タイトルや作者から振り分け）</option>' +
+      Object.keys(TREES).map(key => '<option value="' + key + '"' + (curTree === key ? ' selected' : '') + '>🌳 ' + TREES[key].name + '（担当：' + TREES[key].owner + '）</option>').join('');
     el.innerHTML =
       '<input class="tf" id="kTitle" placeholder="タイトル" value="' + esc(k.title) + '">' +
+      '<div style="font-size:13px; color:var(--sub); margin-bottom:4px;">木（どの木の枝にするか）</div>' +
+      '<select class="tf" id="kTree">' + treeOpts + '</select>' +
       '<textarea class="tf" id="kBody" placeholder="まとめの本文（出典やリンクもここに）。図は ```svg と ``` で囲んでSVGを書くと表示される">' + esc(k.body) + '</textarea>' +
       '<div class="rowbtns"><button class="btn" id="kSave">保存する</button><button class="btn sub2" id="kCancel">やめる</button></div>';
     $('#kSave').onclick = async () => {
       const title = $('#kTitle').value.trim(), body = $('#kBody').value;
+      const treeVal = $('#kTree').value;
       if(!title){ showBanner('タイトルを入れてね', true); return; }
       const now = new Date().toISOString();
       const ok = await commit(() => {
         if(editingKnowId === 'new'){
-          state.knowledge.push({id: state.nextKnowledgeId++, title, body, updatedBy: myName, updatedAt: now, createdBy: myName, createdAt: now});
+          const nk = {id: state.nextKnowledgeId++, title, body, updatedBy: myName, updatedAt: now, createdBy: myName, createdAt: now};
+          if(treeVal) nk.tree = treeVal;
+          state.knowledge.push(nk);
         } else {
           const t = state.knowledge.find(x => x.id === editingKnowId);
           t.title = title; t.body = body; t.updatedBy = myName; t.updatedAt = now;
+          if(treeVal) t.tree = treeVal; else delete t.tree;
         }
       }, '保存したよ');
       if(ok){ const id = editingKnowId === 'new' ? state.knowledge[state.knowledge.length-1].id : editingKnowId; editingKnowId = null; openKnowId = id; render(); }
@@ -275,7 +313,7 @@ function renderKnow(){
     if(!k){ openKnowId = null; renderKnow(); return; }
     el.innerHTML =
       '<div class="kview"><div class="kt">' + esc(k.title) + '</div>' +
-      '<div class="km">最終更新：' + esc(k.updatedBy || '') + ' ・ ' + fmtTime(k.updatedAt) + '</div>' +
+      '<div class="km">🌳 ' + TREES[treeOf(k)].name + '（担当：' + TREES[treeOf(k)].owner + '） ・ 最終更新：' + esc(k.updatedBy || '') + ' ・ ' + fmtTime(k.updatedAt) + '</div>' +
       '<div class="kb">' + renderBodyHTML(k.body) + '</div></div>' +
       '<div class="rowbtns"><button class="btn sub2" id="kBack">← 一覧へ</button><button class="btn" id="kEdit">編集する</button></div>';
     $('#kBack').onclick = () => { openKnowId = null; render(); };
@@ -286,7 +324,7 @@ function renderKnow(){
   if(!state.knowledge.length) html += '<div class="empty">まだまとめがないよ。△のこと、哲学者や科学者の知見を、ここに育てていく。</div>';
   html += state.knowledge.slice().sort((a,b) => (b.updatedAt||'').localeCompare(a.updatedAt||'')).map(k =>
     '<div class="kitem" data-k="' + k.id + '"><div class="kt">' + esc(k.title) + '</div>' +
-    '<div class="km">' + esc(k.updatedBy || '') + ' ・ ' + fmtTime(k.updatedAt) + '</div>' +
+    '<div class="km">🌳 ' + TREES[treeOf(k)].name + ' ・ ' + esc(k.updatedBy || '') + ' ・ ' + fmtTime(k.updatedAt) + '</div>' +
     '<div class="kp">' + esc(previewText(k.body)) + '</div></div>'
   ).join('');
   el.innerHTML = html;
@@ -294,9 +332,72 @@ function renderKnow(){
   el.querySelectorAll('[data-k]').forEach(n => n.onclick = () => { openKnowId = Number(n.dataset.k); render(); });
 }
 
+function renderTree(){
+  const el = $('#treeMain');
+  if(!el) return;
+  const W = 780, groundY = 500, H = 560;
+  const centers = {seigo: 140, kaiso: 390, saiki: 640};
+  const byTree = {seigo: [], kaiso: [], saiki: []};
+  state.knowledge.slice().sort((a,b) => a.id - b.id).forEach(k => byTree[treeOf(k)].push(k));
+  let svg = '';
+  // ground
+  svg += '<path d="M0 ' + groundY + ' Q ' + (W/2) + ' ' + (groundY - 14) + ' ' + W + ' ' + groundY + ' L ' + W + ' ' + H + ' L 0 ' + H + ' Z" fill="#e6dcc4"/>';
+  svg += '<path d="M0 ' + groundY + ' Q ' + (W/2) + ' ' + (groundY - 14) + ' ' + W + ' ' + groundY + '" fill="none" stroke="#b7a67f" stroke-width="3"/>';
+  Object.keys(TREES).forEach(key => {
+    const T = TREES[key], cx = centers[key], items = byTree[key];
+    const n = items.length;
+    const trunkTop = groundY - 120 - n * 26;
+    // roots & trunk (tapers via two paths)
+    svg += '<path d="M' + (cx - 13) + ' ' + groundY + ' C ' + (cx - 9) + ' ' + (groundY - 70) + ', ' + (cx - 6) + ' ' + (trunkTop + 40) + ', ' + (cx - 4) + ' ' + trunkTop +
+           ' L ' + (cx + 4) + ' ' + trunkTop +
+           ' C ' + (cx + 6) + ' ' + (trunkTop + 40) + ', ' + (cx + 9) + ' ' + (groundY - 70) + ', ' + (cx + 13) + ' ' + groundY + ' Z" fill="#8a6844"/>';
+    svg += '<path d="M' + (cx - 13) + ' ' + groundY + ' q -14 4 -22 12 M' + (cx + 13) + ' ' + groundY + ' q 14 4 22 12" stroke="#8a6844" stroke-width="5" fill="none" stroke-linecap="round"/>';
+    if(!n){
+      // sprout only
+      svg += '<path d="M' + cx + ' ' + trunkTop + ' q -12 -16 -22 -18 M' + cx + ' ' + trunkTop + ' q 12 -16 22 -18" stroke="#8a6844" stroke-width="4" fill="none" stroke-linecap="round"/>';
+      svg += '<circle cx="' + (cx - 24) + '" cy="' + (trunkTop - 20) + '" r="7" fill="' + T.leaf + '"/>';
+      svg += '<circle cx="' + (cx + 24) + '" cy="' + (trunkTop - 20) + '" r="7" fill="' + T.leaf2 + '"/>';
+      svg += '<text x="' + cx + '" y="' + (trunkTop - 42) + '" text-anchor="middle" font-size="12" fill="#8a8172">まだ枝がないよ</text>';
+    }
+    items.forEach((k, i) => {
+      // deterministic pseudo-random from id for an organic feel
+      const rnd = Math.abs(Math.sin(k.id * 127.1 + i * 311.7)) % 1;
+      const side = i % 2 === 0 ? -1 : 1;
+      const level = Math.floor(i / 2);
+      const baseY = groundY - 74 - level * 46 - rnd * 10;
+      const len = 62 + rnd * 30 + (i % 3) * 8;
+      const tipX = cx + side * len;
+      const tipY = baseY - 40 - rnd * 16;
+      const ctrlX = cx + side * len * 0.45;
+      const ctrlY = baseY - 8;
+      const wdt = Math.max(3, 7 - level * 0.9);
+      const title = k.title.length > 15 ? k.title.slice(0, 15) + '…' : k.title;
+      const anchor = side < 0 ? 'end' : 'start';
+      const tx = tipX + side * 10;
+      svg += '<g class="branch" data-k="' + k.id + '">' +
+        '<path d="M' + cx + ' ' + baseY + ' Q ' + ctrlX + ' ' + ctrlY + ' ' + tipX + ' ' + tipY + '" stroke="#8a6844" stroke-width="' + wdt.toFixed(1) + '" fill="none" stroke-linecap="round"/>' +
+        '<circle class="bleaf" cx="' + tipX + '" cy="' + tipY + '" r="11" fill="' + T.leaf + '" opacity="0.9"/>' +
+        '<circle class="bleaf" cx="' + (tipX + side * 9) + '" cy="' + (tipY - 8) + '" r="7.5" fill="' + T.leaf2 + '" opacity="0.9"/>' +
+        '<circle class="bleaf" cx="' + (tipX - side * 7) + '" cy="' + (tipY - 10) + '" r="6" fill="' + T.leaf + '" opacity="0.75"/>' +
+        '<text x="' + tx + '" y="' + (tipY + 4) + '" text-anchor="' + anchor + '">' + esc(title) + '</text>' +
+        '</g>';
+    });
+    // tree label under the ground
+    svg += '<text x="' + cx + '" y="' + (groundY + 30) + '" text-anchor="middle" font-size="15" font-weight="700" fill="' + T.color + '">🌳 ' + T.name + '</text>';
+    svg += '<text x="' + cx + '" y="' + (groundY + 50) + '" text-anchor="middle" font-size="12" fill="#8a8172">担当：' + T.owner + ' ・ 枝 ' + n + ' 本</text>';
+  });
+  el.innerHTML = '<div style="font-size:13px; color:var(--sub); margin-bottom:8px;">知のまとめは3本の木の枝として育つよ。枝の先のタイトルをタップすると、そのまとめが開く。</div>' +
+    '<div class="treewrap"><svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg">' + svg + '</svg></div>';
+  el.querySelectorAll('[data-k]').forEach(g => g.onclick = () => {
+    openKnowId = Number(g.dataset.k); editingKnowId = null; tab = 'know'; render();
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  });
+}
+
 /* ================= events ================= */
 $('#tabChat').onclick = () => { tab = 'chat'; render(); };
 $('#tabKnow').onclick = () => { tab = 'know'; render(); };
+$('#tabTree').onclick = () => { tab = 'tree'; render(); };
 $('#chatSend').onclick = async () => {
   const ta = $('#chatInput'); const text = ta.value.trim();
   if(!text) return;
