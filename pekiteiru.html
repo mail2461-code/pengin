@@ -113,7 +113,7 @@
 </div>
 
 <script>
-const BUILD = '2026-11-27-1322';
+const BUILD = '2026-11-27-1412';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = 'be67a0d9-154c-408c-a300-ffcda2800341';
@@ -170,8 +170,10 @@ function previewText(body){
   return String(body || '').replace(/```svg[\s\S]*?(```|$)/gi, '［図］');
 }
 function fmtTime(iso){
-  try{ const d = new Date(iso); return (d.getMonth()+1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); }
-  catch(e){ return ''; }
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return '';
+  return (d.getMonth()+1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
 }
 
 /* ================= supabase ================= */
