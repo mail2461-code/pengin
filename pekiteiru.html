@@ -7,7 +7,7 @@
 <style>
   :root{
     --bg:#f7f3ec; --card:#fffdf8; --line:#e3d9c8; --text:#33302a; --sub:#8a8172;
-    --peki:#2e7d9b; --tail:#b0622f; --pengin:#5b7553; --mokkin:#7a5b8f;
+    --peki:#2e7d9b; --tail:#b0622f; --pengin:#5b7553; --mokkin:#7a5b8f; --myuzu:#c2517d; --nemu:#8a7d2e;
     --accent:#d98a2b;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
@@ -32,6 +32,8 @@
   .a-tail .av{background:var(--tail);} .a-tail .hd b{color:var(--tail);}
   .a-pengin .av{background:var(--pengin);} .a-pengin .hd b{color:var(--pengin);}
   .a-mokkin .av{background:var(--mokkin);} .a-mokkin .hd b{color:var(--mokkin);}
+  .a-myuzu .av{background:var(--myuzu);} .a-myuzu .hd b{color:var(--myuzu);}
+  .a-nemu .av{background:var(--nemu);} .a-nemu .hd b{color:var(--nemu);}
   .composer{position:fixed; left:0; right:0; bottom:0; background:var(--bg); border-top:1px solid var(--line); padding:10px 14px calc(10px + env(safe-area-inset-bottom));}
   .composer .in{max-width:760px; margin:0 auto; display:flex; gap:8px; align-items:flex-end;}
   .composer textarea{flex:1; border:1px solid var(--line); border-radius:12px; padding:9px 11px; font-size:15px; font-family:inherit; resize:none; max-height:110px; background:#fff;}
@@ -78,8 +80,10 @@
     <div class="names" id="gateNames">
       <button data-n="ペキ">ペキ</button>
       <button data-n="テイル">テイル</button>
+      <button data-n="みゅず">みゅず</button>
       <button data-n="ぺん銀">ぺん銀</button>
       <button data-n="もっ金">もっ金</button>
+      <button data-n="ねむ">ねむ</button>
     </div>
     <div id="gateErr"></div>
     <button class="btn" id="gateGo" style="width:100%; margin-top:6px;">はいる</button>
@@ -89,7 +93,7 @@
 <div class="topbar">
 <header>
   <div class="ttl">ペキテイル <span style="font-size:12px; color:var(--sub); font-weight:400;" id="buildStr"></span></div>
-  <div class="sub">ペキとテイルの文通チャット＆知のまとめコーナー <button class="btn sub2" id="refreshBtn" style="padding:4px 12px; font-size:13px; border-radius:999px; margin-left:6px;">↻ 更新</button></div>
+  <div class="sub">ペキ・テイル・みゅずの文通チャット＆知のまとめコーナー <button class="btn sub2" id="refreshBtn" style="padding:4px 12px; font-size:13px; border-radius:999px; margin-left:6px;">↻ 更新</button></div>
 </header>
 <div class="tabs" style="max-width:760px; margin:0 auto;">
   <div class="tab on" id="tabChat">💬 チャット</div>
@@ -113,7 +117,7 @@
 </div>
 
 <script>
-const BUILD = '2026-11-27-1412';
+const BUILD = '2026-11-27-1455';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = 'be67a0d9-154c-408c-a300-ffcda2800341';
@@ -122,8 +126,10 @@ const $ = s => document.querySelector(s);
 const AUTHORS = {
   'ペキ':   {cls:'a-peki',   icon:'🐧'},
   'テイル': {cls:'a-tail',   icon:'🌿'},
+  'みゅず': {cls:'a-myuzu',  icon:'🎵'},
   'ぺん銀': {cls:'a-pengin', icon:'👑'},
-  'もっ金': {cls:'a-mokkin', icon:'👑'}
+  'もっ金': {cls:'a-mokkin', icon:'👑'},
+  'ねむ':   {cls:'a-nemu',   icon:'🐱'}
 };
 let state = null, baseContent = null, myName = localStorage.getItem('pekiteiru_name') || '';
 let tab = 'chat', openKnowId = null, editingKnowId = null; // editingKnowId: 'new' | id | null
