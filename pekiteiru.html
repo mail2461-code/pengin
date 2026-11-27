@@ -45,6 +45,7 @@
   .kview .kt{font-size:19px; font-weight:700; margin-bottom:2px;}
   .kview .km{font-size:12px; color:var(--sub); margin-bottom:10px;}
   .kview .kb{white-space:pre-wrap; word-break:break-word; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px 13px;}
+  .svgbox{background:#fffdf6; border:1px dashed var(--line); border-radius:10px; padding:8px; margin:8px 0; white-space:normal;}
   .rowbtns{display:flex; gap:8px; margin:12px 0;}
   input.tf, textarea.tf{width:100%; border:1px solid var(--line); border-radius:12px; padding:9px 11px; font-size:15px; font-family:inherit; background:#fff; margin-bottom:10px;}
   textarea.tf{min-height:180px; resize:vertical;}
@@ -109,7 +110,7 @@
 </div>
 
 <script>
-const BUILD = '2026-11-27-1250';
+const BUILD = '2026-11-27-1312';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = 'be67a0d9-154c-408c-a300-ffcda2800341';
@@ -129,6 +130,41 @@ let bannerTimer = null;
 function showBanner(msg, isErr){
   const b = $('#banner'); b.textContent = msg; b.className = 'show' + (isErr ? ' err' : '');
   clearTimeout(bannerTimer); bannerTimer = setTimeout(() => { b.className = ''; }, 5000);
+}
+function sanitizeSVG(svg){
+  let s = String(svg || '');
+  s = s.replace(/<\s*(script|foreignObject|iframe|object|embed|link|meta|style)[\s\S]*?<\s*\/\s*\1\s*>/gi, '');
+  s = s.replace(/<\s*(script|foreignObject|iframe|object|embed|link|meta|style)\b[^>]*>/gi, '');
+  s = s.replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+  s = s.replace(/(href|xlink:href)\s*=\s*("([^"]*)"|'([^']*)')/gi, (m, a, q, v1, v2) => {
+    const v = (v1 !== undefined ? v1 : v2) || '';
+    return v.startsWith('#') ? m : a + '="#"';
+  });
+  s = s.replace(/javascript\s*:/gi, '');
+  if(!/<svg[\s>]/i.test(s)) return '';
+  if(!/xmlns\s*=/.test(s)) s = s.replace(/<svg/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+  s = s.replace(/<svg([^>]*)>/i, (m, attrs) => {
+    if(!/style\s*=/.test(attrs)) attrs += ' style="max-width:100%;height:auto;display:block;margin:8px auto;"';
+    return '<svg' + attrs + '>';
+  });
+  return s;
+}
+function renderBodyHTML(body){
+  const parts = String(body || '').split(/```svg\s*\n?/i);
+  let html = '';
+  parts.forEach((part, i) => {
+    if(i === 0){ html += esc(part); return; }
+    const end = part.indexOf('```');
+    const svgRaw = end >= 0 ? part.slice(0, end) : part;
+    const rest = end >= 0 ? part.slice(end + 3) : '';
+    const svg = sanitizeSVG(svgRaw);
+    html += svg ? '<div class="svgbox">' + svg + '</div>' : '<div class="svgbox" style="color:var(--sub);">[図を表示できなかったよ]</div>';
+    html += esc(rest);
+  });
+  return html;
+}
+function previewText(body){
+  return String(body || '').replace(/```svg[\s\S]*?(```|$)/gi, '［図］');
 }
 function fmtTime(iso){
   try{ const d = new Date(iso); return (d.getMonth()+1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); }
@@ -204,7 +240,7 @@ function renderKnow(){
     if(!k){ editingKnowId = null; renderKnow(); return; }
     el.innerHTML =
       '<input class="tf" id="kTitle" placeholder="タイトル" value="' + esc(k.title) + '">' +
-      '<textarea class="tf" id="kBody" placeholder="まとめの本文（出典やリンクもここに）">' + esc(k.body) + '</textarea>' +
+      '<textarea class="tf" id="kBody" placeholder="まとめの本文（出典やリンクもここに）。図は ```svg と ``` で囲んでSVGを書くと表示される">' + esc(k.body) + '</textarea>' +
       '<div class="rowbtns"><button class="btn" id="kSave">保存する</button><button class="btn sub2" id="kCancel">やめる</button></div>';
     $('#kSave').onclick = async () => {
       const title = $('#kTitle').value.trim(), body = $('#kBody').value;
@@ -229,7 +265,7 @@ function renderKnow(){
     el.innerHTML =
       '<div class="kview"><div class="kt">' + esc(k.title) + '</div>' +
       '<div class="km">最終更新：' + esc(k.updatedBy || '') + ' ・ ' + fmtTime(k.updatedAt) + '</div>' +
-      '<div class="kb">' + esc(k.body) + '</div></div>' +
+      '<div class="kb">' + renderBodyHTML(k.body) + '</div></div>' +
       '<div class="rowbtns"><button class="btn sub2" id="kBack">← 一覧へ</button><button class="btn" id="kEdit">編集する</button></div>';
     $('#kBack').onclick = () => { openKnowId = null; render(); };
     $('#kEdit').onclick = () => { editingKnowId = k.id; render(); };
@@ -240,7 +276,7 @@ function renderKnow(){
   html += state.knowledge.slice().sort((a,b) => (b.updatedAt||'').localeCompare(a.updatedAt||'')).map(k =>
     '<div class="kitem" data-k="' + k.id + '"><div class="kt">' + esc(k.title) + '</div>' +
     '<div class="km">' + esc(k.updatedBy || '') + ' ・ ' + fmtTime(k.updatedAt) + '</div>' +
-    '<div class="kp">' + esc(k.body) + '</div></div>'
+    '<div class="kp">' + esc(previewText(k.body)) + '</div></div>'
   ).join('');
   el.innerHTML = html;
   $('#kNew').onclick = () => { editingKnowId = 'new'; render(); };
