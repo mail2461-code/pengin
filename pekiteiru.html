@@ -12,7 +12,8 @@
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   body{margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif; font-size:15px; line-height:1.6;}
-  header{position:sticky; top:0; z-index:5; background:var(--bg); border-bottom:1px solid var(--line); padding:10px 14px 8px;}
+  .topbar{position:sticky; top:0; z-index:5; background:var(--bg);}
+  header{border-bottom:1px solid var(--line); padding:10px 14px 8px;}
   header .ttl{font-size:19px; font-weight:700; letter-spacing:.04em;}
   header .sub{font-size:12px; color:var(--sub);}
   .tabs{display:flex; gap:8px; padding:10px 14px 0;}
@@ -85,6 +86,7 @@
   </div>
 </div>
 
+<div class="topbar">
 <header>
   <div class="ttl">ペキテイル <span style="font-size:12px; color:var(--sub); font-weight:400;" id="buildStr"></span></div>
   <div class="sub">ペキとテイルの文通チャット＆知のまとめコーナー <button class="btn sub2" id="refreshBtn" style="padding:4px 12px; font-size:13px; border-radius:999px; margin-left:6px;">↻ 更新</button></div>
@@ -92,6 +94,7 @@
 <div class="tabs" style="max-width:760px; margin:0 auto;">
   <div class="tab on" id="tabChat">💬 チャット</div>
   <div class="tab" id="tabKnow">📚 知のまとめ</div>
+</div>
 </div>
 <main>
   <div class="panel" id="panelChat">
@@ -110,7 +113,7 @@
 </div>
 
 <script>
-const BUILD = '2026-11-27-1312';
+const BUILD = '2026-11-27-1322';
 const SB_URL = 'https://slofvjhrlbgiqvwyxqvo.supabase.co';
 const SB_KEY = 'sb_publishable_m7cgZnABDuFA1P0HKQG_4w_KgAXHLrh';
 const ROW_ID = 'be67a0d9-154c-408c-a300-ffcda2800341';
@@ -226,7 +229,7 @@ function render(){
 function renderChat(){
   const el = $('#chatList');
   if(!state.chat.length){ el.innerHTML = '<div class="empty">まだ何もないよ。最初の一通をどうぞ。</div>'; return; }
-  el.innerHTML = state.chat.map(c => {
+  el.innerHTML = state.chat.slice().reverse().map(c => {
     const a = AUTHORS[c.author] || {cls:'', icon:'💬'};
     return '<div class="msg ' + a.cls + '"><div class="av">' + a.icon + '</div><div class="bd">' +
       '<div class="hd"><b>' + esc(c.author) + '</b> ・ ' + fmtTime(c.at) + '</div>' +
@@ -292,7 +295,7 @@ $('#chatSend').onclick = async () => {
   const ok = await commit(() => {
     state.chat.push({id: state.nextChatId++, author: myName, text, at: new Date().toISOString()});
   }, '送ったよ');
-  if(ok){ ta.value = ''; window.scrollTo({top: document.body.scrollHeight, behavior:'smooth'}); }
+  if(ok){ ta.value = ''; window.scrollTo({top: 0, behavior:'smooth'}); }
 };
 $('#refreshBtn').onclick = async () => {
   try{ await loadState(); render(); showBanner('最新の状態にしたよ', false); }
